@@ -259,7 +259,7 @@ function create_session(experiment_id, total_participants){
    };
 
 session.end_trial = function(){
-     io.to('session').emit('end_trial', this.players);
+     io.emit('end_trial', this.players);
      console.log(session.trial_limit);
      console.log('end trial');
    };

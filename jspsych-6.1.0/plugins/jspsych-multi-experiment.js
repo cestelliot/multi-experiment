@@ -168,7 +168,7 @@ jsPsych.plugins["multi-experiment"] = (function() {
 
 
     // end trial
-    socket.on('end_trial', function(trial, players){
+    socket.once('end_trial', function(players){
       console.log('trial is over');
       var trial_data = [];
       for (var id in players){
