@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Multiplayer Experiment</title>
+    <script src='jspsych-6.1.0/jspsych.js'></script>
+    <script src="socket.io/socket.io.js"></script>
+    <script src="jspsych-6.1.0/plugins/jspsych-html-keyboard-response.js"></script>
+    <script src="jspsych-6.1.0/plugins/jspsych-external-html.js"></script>
+    <script src="jspsych-6.1.0/plugins/jspsych-multi-experiment.js"></script>
+    <script src="node_modules/jquery/dist/jquery.js"></script>
+    <link href="jspsych-6.1.0/css/jspsych.css" rel="stylesheet" type="text/css"></link>
+  </head>
+  <body></body>
+
+<script>
+var socket = io();
+var timeline = [];
+var test_audio = ["stimuli/1.wav", "stimuli/2.wav", "stimuli/3.wav", "stimuli/4.wav",
+                "stimuli/5.wav", "stimuli/6.wav", "stimuli/7.wav", "stimuli/8.wav",
+                "stimuli/9.wav", "stimuli/10.wav", "stimuli/11.wav", "stimuli/12.wav",
+                "stimuli/13.wav", "stimuli/14.wav", "stimuli/15.wav", "stimuli/16.wav"];
+
+var start = {
+  type: 'html-keyboard-response',
+  stimulus: 'Press space',
+  choices: [32],
+  on_start: function(){
+      socket.emit('new player');
+  }
+};
+
+var trial = {
+  timeline:[{
+  type: 'multi-experiment',
+  images: ["stimuli/1001.jpg", "stimuli/2001.jpg", "stimuli/3001.jpg", "stimuli/4001.jpg"],
+  stimulus: jsPsych.timelineVariable('stimulus')
+},
+{
+  type: 'html-keyboard-response',
+  stimulus: 'Press space',
+  choices:[32]
+}],
+  timeline_variables:   [{stimulus: test_audio[0]}, {stimulus: test_audio[1]}, {stimulus: test_audio[2]}, {stimulus: test_audio[3]},
+    {stimulus: test_audio[4]}, {stimulus: test_audio[5]}, {stimulus: test_audio[6]}, {stimulus: test_audio[7]},
+    {stimulus: test_audio[8]}, {stimulus: test_audio[9]}, {stimulus: test_audio[10]}, {stimulus: test_audio[11]},
+    {stimulus: test_audio[12]}, {stimulus: test_audio[13]}, {stimulus: test_audio[14]}, {stimulus: test_audio[15]}]
+};
+
+
+
+
+
+
+jsPsych.init({
+  timeline:[
+    start, trial
+  ],
+  preload_audio: [test_audio],
+  on_finish: function(){jsPsych.data.displayData()}
+});
+
+</script>
+</html>
