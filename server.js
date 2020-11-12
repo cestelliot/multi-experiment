@@ -52,15 +52,20 @@ io.on('connection', function(socket){
   socket.on('new player', function(){
     session = find_session(experiment_id, 2, socket);
 
-    session.players[socket.id] = start_pos[num_players];
     num_players ++;
-    console.log(session);
+
   });
 
 
 
   socket.on('loaded', function(){
-    session.set_timer()
+    session.set_timer();
+    session.set_players(socket.id);
+    console.log(session.players);
+    clock = setInterval(function(){
+        io.emit('state', {players: session.players});
+      }, 1000/60);
+
   }
   );
 
@@ -142,10 +147,8 @@ function create_session(experiment_id, total_participants){
   session.trial_limit;
   session.started = false;
   session.clients = [];
-  session.players = [];
-  session.clock = setInterval(function(){
-    io.sockets.emit('state', session.players);
-  }, 1000/60);
+  session.players = {};
+
 
 
 
@@ -197,6 +200,7 @@ function create_session(experiment_id, total_participants){
     // leaving the session is automatic when client disconnects,
     // TODO: do something useful here
     this.update('disconnect');
+    delete session.players[socket.id]
     io.to(this.id).emit('disconnect');
   };
 
@@ -254,13 +258,18 @@ function create_session(experiment_id, total_participants){
      for(var id in clients){
        clients[id].player_id = idx;
        idx++;
+
        clients[id].emit('start', {player_id: clients[id].player_id});
      }
    };
 
+
+
+
+
 session.end_trial = function(){
      io.emit('end_trial', this.players);
-     console.log(session.trial_limit);
+     console.log(session.players);
      console.log('end trial');
    };
 
@@ -268,6 +277,13 @@ session.end_trial = function(){
      session.trial_limit = setTimeout(session.end_trial, 1e4);
      console.log('timer set');
    };
+
+
+session.set_players = function(id){
+  session.players[id] = {x:350, y:300, player_num:0};
+
+};
+
 
 
   return session;

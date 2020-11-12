@@ -154,7 +154,6 @@ jsPsych.plugins["multi-experiment"] = (function() {
 
     var movingInterval = setInterval(function(){
       socket.emit('movement', movement);
-      console.log('movement');
     }, 1000/60);
 
 
@@ -192,12 +191,15 @@ jsPsych.plugins["multi-experiment"] = (function() {
 
     socket.emit('loaded');
     console.log('loaded');
+
+
+
     //make the player
     var colours = ['blue', 'red'];
     socket.on('state', function(players){
       contextfg.clearRect(0, 0, parseInt(trial.canvas_width), parseInt(trial.canvas_height));
-      for (var id in players){
-        var player = players[id];
+      for (var id in players.players){
+        let player = players.players[id];
         contextfg.fillStyle = colours[player.player_num];
         contextfg.beginPath();
         contextfg.arc(player.x, player.y, 10, 0, 2*Math.PI);
