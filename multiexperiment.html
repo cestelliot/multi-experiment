@@ -22,12 +22,36 @@ var test_audio = ["stimuli/1.wav", "stimuli/2.wav", "stimuli/3.wav", "stimuli/4.
 
 var start = {
   type: 'html-keyboard-response',
-  stimulus: 'Press space',
+  stimulus: 'Press space to find a partner',
   choices: [32],
-  on_start: function(){
+  on_finish: function(){
       socket.emit('new player');
   }
 };
+
+
+var room_full = false;
+socket.on('room full', function(){
+  room_full = true
+});
+var client_join = {
+  type: 'html-keyboard-response',
+  stimulus: 'Please wait while we find you a partner.',
+  response_ends_trial: false,
+  trial_duration: 500
+};
+var client_join_loop = {
+  timeline: [client_join],
+  loop_function: function(){
+    if (room_full == false){
+      return true
+    } else {
+      return false
+    }
+  }
+};
+
+
 
 var trial = {
   timeline:[{
@@ -37,8 +61,9 @@ var trial = {
 },
 {
   type: 'html-keyboard-response',
-  stimulus: 'Press space',
-  choices:[32]
+  stimulus: 'Please wait',
+  response_ends_trial: false,
+  trial_duration: 2000
 }],
   timeline_variables:   [{stimulus: test_audio[0]}, {stimulus: test_audio[1]}, {stimulus: test_audio[2]}, {stimulus: test_audio[3]},
     {stimulus: test_audio[4]}, {stimulus: test_audio[5]}, {stimulus: test_audio[6]}, {stimulus: test_audio[7]},
@@ -53,7 +78,7 @@ var trial = {
 
 jsPsych.init({
   timeline:[
-    start, trial
+    start, client_join_loop, trial
   ],
   preload_audio: [test_audio],
   on_finish: function(){jsPsych.data.displayData()}

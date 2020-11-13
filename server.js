@@ -39,6 +39,7 @@ server.listen(5000, function(){
 var sessions = [];
 var experiment_id = 1;
 var session;
+var total_players = 2;
 
 
 //player detection
@@ -50,9 +51,8 @@ io.on('connection', function(socket){
 
 
   socket.on('new player', function(){
-    session = find_session(experiment_id, 2, socket);
+    session = find_session(experiment_id, total_players, socket);
 
-    num_players ++;
 
   });
 
@@ -180,11 +180,10 @@ function create_session(experiment_id, total_participants){
     client.join(this.id);
     client.session = this;
 
-    this.update('joined');
 
-    // when session is full, get confirmation from everyone that session can start
+    // when session is full, send start message
     if(this.participants() == this.total_participants){
-      this.confirm_ready();
+      io.to(this.id).emit('room full')
     }
     return true;
   };
@@ -204,52 +203,7 @@ function create_session(experiment_id, total_participants){
     io.to(this.id).emit('disconnect');
   };
 
-  // updates each client with the number of currently connected participants
-  session.update = function(message){
-    /* TODO: this is from the code I copied. It's for sending a message to the entire room;
-    currently doesn't have an endpoint in the client script, so if one person leaves,
-    from their partner's viewpoint, it still looks like they're ready to go
-    */
-    var n_participants = this.participants();
-    io.to(this.id).emit('session-update', {
-      participants: n_participants,
-      message: message
-    });
-  };
 
-  session.confirm_ready = function() {
-    // reset ready counter
-    this.messages.ready = 0;
-    // reset status of all clients
-    var clients = io.in(this.id).connected;
-    for(var id in clients){
-      clients[id].confirmed_ready = false;
-    }
-    // send ready-check messages to all clients
-    io.to(this.id).emit('ready-check', {});
-    /* I'm commenting the following out for now. Ultimately, we want to get participants to confirm that they're ready,
-    once their room is full, and have it boot them out of the particular room if they take too long,
-    so that their partner is free to join up with another partner who is ready to go
-    */
-    // set timeout to abort ready process after Xms
-    // setTimeout(()=>{
-    //   this.abort_start();
-    // }, READY_TIMEOUT);
-  };
-
-  /*
-  TODO: I've commented the following few function out, cos they depend on participants having to confirm
-  that they're ready, and that endpoint hasn't been implemented yet
-  */
-   session.client_ready = function(client) {
-     if(!client.confirmed_ready){
-       this.messages.ready++;
-       client.confirmed_ready = true;
-       if(this.messages.ready == this.total_participants){
-         this.start();
-       }
-     }
-   };
 
    session.start = function(){
      this.started = true;
@@ -269,6 +223,11 @@ function create_session(experiment_id, total_participants){
 
 session.end_trial = function(){
      io.emit('end_trial', this.players);
+     num_players = 0;
+     for (var id in session.players){
+       session.players[id].x = 350;
+       session.players[id].y = 300;
+     };
      console.log(session.players);
      console.log('end trial');
    };
@@ -280,7 +239,8 @@ session.end_trial = function(){
 
 
 session.set_players = function(id){
-  session.players[id] = {x:350, y:300, player_num:0};
+  session.players[id] = start_pos[num_players];
+  num_players ++;
 
 };
 
