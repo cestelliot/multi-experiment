@@ -66,10 +66,11 @@ io.on('connection', function(socket){
 
 //called when each round of the trial loads
   socket.on('loaded', function(cookie){
+    socket.join(session);
     session.set_timer();
     session.set_players(socket.id);
-    clock = setInterval(function(){
-        io.emit('state', {players: session.players});
+    session.clock = setInterval(function(){
+        io.to(session).emit('state', {players: session.players});
       }, 1000/60);
       //update the socket id if it changed due to a small disconnect or whatever
       for (id in session.players){
@@ -82,11 +83,6 @@ io.on('connection', function(socket){
   );
 
 
-  //called to make sure the client ids are updated correctly
-  socket.on('cookie check', function(cookie){
-
-  })
-
 
 
 //update the movement of players and keep them in bounds
@@ -98,25 +94,25 @@ io.on('connection', function(socket){
       }
     };
     if(data.left){
-      player.x -= 5;
+      player.x -= 2;
       if (player.x<0){
         player.x=0
       };
     };
     if(data.up){
-      player.y -= 5;
+      player.y -= 2;
       if (player.y < 0){
         player.y=0
       };
     };
     if(data.right){
-      player.x += 5;
+      player.x += 2;
       if (player.x>800){
         player.x=800
       };
     };
     if(data.down){
-      player.y += 5;
+      player.y += 2;
       if (player.y>600){
         player.y=600
       };
@@ -187,15 +183,7 @@ function create_session(experiment_id, total_participants){
     }
   };
 
-  // returns client ids in this session
-  session.client_ids = function(){
-    if(typeof io.sockets.adapter.rooms[this.id] == 'undefined'){
-      return [];
-    } else {
-      console.log(io.sockets.adapter.rooms[this.id].sockets);
-      return Object.keys(io.sockets.adapter.rooms[this.id].sockets);
-    }
-  };
+
 
   // adds client to this session if space is available and experiment_id matches
   session.join =  function(experiment_id, total_participants, client) {
@@ -219,6 +207,16 @@ function create_session(experiment_id, total_participants){
     return true;
   };
 
+
+//return the client ids
+  session.get_ids = function(){
+    var player_ids = [];
+    for (player in session.players){
+      player_ids.push(session.players[player].socketID)
+    }
+    return player_ids
+  }
+
   // called if someone leaves
   session.leave = function(client) {
     this.update('leave');
@@ -235,30 +233,18 @@ function create_session(experiment_id, total_participants){
 
 
 
-   session.start = function(){
-     this.started = true;
-     var clients = io.in(this.id).connected;
-     var idx = 0;
-     for(var id in clients){
-       clients[id].player_id = idx;
-       idx++;
-       clients[id].emit('start', {player_id: clients[id].player_id});
-     }
-   };
-
-
 
 
 //called when the timer runs out to end the trial
 session.end_trial = function(){
-     io.emit('end_trial', this.players);
+     io.to(session).emit('end_trial', this.players);
      console.log(session.players);
      console.log('end trial');
    };
 
 //set the timer at the start of the trial
    session.set_timer = function(){
-     session.trial_limit = setTimeout(session.end_trial, 1e4);
+     session.trial_limit = setTimeout(session.end_trial, 5e3);
      console.log('timer set');
    };
 
