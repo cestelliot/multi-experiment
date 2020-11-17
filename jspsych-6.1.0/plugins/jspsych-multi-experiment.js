@@ -25,6 +25,10 @@ jsPsych.plugins["multi-experiment"] = (function() {
       canvas_width: {
         type: jsPsych.plugins.parameterType.STRING,
         default: '800px'
+      },
+      cookie : {
+        type: jsPsych.plugins.parameterType.String,
+        default: undefined
       }
     }
   }
@@ -189,18 +193,19 @@ jsPsych.plugins["multi-experiment"] = (function() {
     });
 
 
-    socket.emit('loaded');
+    //when the trial actually begins this tells the server to start a timer and assign players
+    socket.emit('loaded', trial.cookie);
     console.log('loaded');
 
 
 
     //make the player
-    var colours = ['blue', 'red'];
+    //possibly change it so colours persist per player?
     socket.on('state', function(players){
       contextfg.clearRect(0, 0, parseInt(trial.canvas_width), parseInt(trial.canvas_height));
       for (var id in players.players){
         let player = players.players[id];
-        contextfg.fillStyle = colours[player.player_num];
+        contextfg.fillStyle = player.colour;
         contextfg.beginPath();
         contextfg.arc(player.x, player.y, 10, 0, 2*Math.PI);
         contextfg.fill();

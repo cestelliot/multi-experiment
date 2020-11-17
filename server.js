@@ -23,8 +23,11 @@ app.get('/', function(request, response){
   response.sendFile(path.join(__dirname, 'multiexperiment.html'))
 });
 
-
-
+//random number generation
+function rand(min, max) {
+  let randomNum = Math.random() * (max - min) + min;
+  return Math.floor(randomNum);
+};
 
 
 
@@ -37,67 +40,90 @@ server.listen(5000, function(){
 
 //stuff that needs to be added in
 var sessions = [];
-var experiment_id = 1;
 var session;
+
+
+//not as of yet randomised to something less dumb
+var experiment_id = 1;
+//this could be passed by the multiexperiment plugin but right now it isn't
 var total_players = 2;
 
 
 //player detection
 var num_players = 0;
-var start_pos = [{x:350, y:300, player_num:0}, {x:450, y:300, player_num:1}]
+var start_pos = [{x:350, y:300, colour:'blue'}, {x:450, y:300, colour:'red'}]
 
 
 io.on('connection', function(socket){
 
-
-  socket.on('new player', function(){
+//called when the player finishes the 'start' trial, putting them in a session to wait for others
+  socket.on('new player', function(cookie){
+    socket.cookie = cookie;
     session = find_session(experiment_id, total_players, socket);
-
 
   });
 
 
-
-  socket.on('loaded', function(){
+//called when each round of the trial loads
+  socket.on('loaded', function(cookie){
     session.set_timer();
     session.set_players(socket.id);
-    console.log(session.players);
     clock = setInterval(function(){
         io.emit('state', {players: session.players});
       }, 1000/60);
+      //update the socket id if it changed due to a small disconnect or whatever
+      for (id in session.players){
+        if (id == cookie){
+          session.players[cookie].socketID = socket.id
+        };
+      }
 
   }
   );
 
 
+  //called to make sure the client ids are updated correctly
+  socket.on('cookie check', function(cookie){
+
+  })
 
 
+
+//update the movement of players and keep them in bounds
   socket.on('movement', function(data){
-    var player = session.players[socket.id] || {};
+    var player = {};
+    for (cookie in session.players){
+      if (session.players[cookie].socketID == socket.id){
+        player = session.players[cookie];
+      }
+    };
     if(data.left){
       player.x -= 5;
-    }
+      if (player.x<0){
+        player.x=0
+      };
+    };
     if(data.up){
       player.y -= 5;
-    }
+      if (player.y < 0){
+        player.y=0
+      };
+    };
     if(data.right){
       player.x += 5;
-    }
+      if (player.x>800){
+        player.x=800
+      };
+    };
     if(data.down){
       player.y += 5;
-    }
-    if (player.x<0){
-      player.x=0
+      if (player.y>600){
+        player.y=600
+      };
     };
-    if (player.x>800){
-      player.x=800
-    };
-    if (player.y < 0){
-      player.y=0
-    };
-    if (player.y>600){
-      player.y=600
-    };
+
+
+
   });
 
 
@@ -179,11 +205,16 @@ function create_session(experiment_id, total_participants){
     }
     client.join(this.id);
     client.session = this;
+    var address = client.cookie;
+    session.players[address] = start_pos[num_players];
+    session.players[address].socketID = client.id
+    num_players++;
 
 
     // when session is full, send start message
     if(this.participants() == this.total_participants){
-      io.to(this.id).emit('room full')
+      this.started = true;
+      io.to(this.id).emit('room full');
     }
     return true;
   };
@@ -199,7 +230,6 @@ function create_session(experiment_id, total_participants){
     // leaving the session is automatic when client disconnects,
     // TODO: do something useful here
     this.update('disconnect');
-    delete session.players[socket.id]
     io.to(this.id).emit('disconnect');
   };
 
@@ -212,7 +242,6 @@ function create_session(experiment_id, total_participants){
      for(var id in clients){
        clients[id].player_id = idx;
        idx++;
-
        clients[id].emit('start', {player_id: clients[id].player_id});
      }
    };
@@ -220,27 +249,25 @@ function create_session(experiment_id, total_participants){
 
 
 
-
+//called when the timer runs out to end the trial
 session.end_trial = function(){
      io.emit('end_trial', this.players);
-     num_players = 0;
-     for (var id in session.players){
-       session.players[id].x = 350;
-       session.players[id].y = 300;
-     };
      console.log(session.players);
      console.log('end trial');
    };
 
+//set the timer at the start of the trial
    session.set_timer = function(){
      session.trial_limit = setTimeout(session.end_trial, 1e4);
      console.log('timer set');
    };
 
-
+//set the players for the round
 session.set_players = function(id){
-  session.players[id] = start_pos[num_players];
-  num_players ++;
+  for (id in session.players){
+    session.players[id].x = rand(350, 450);
+    session.players[id].y = rand(250, 350);
+  }
 
 };
 
