@@ -37,10 +37,37 @@ server.listen(5000, function(){
   console.log('Starting server on port 5000');
 });
 
+//shuffle
+var shuffle = function (array) {
+
+	var currentIndex = array.length;
+	var temporaryValue, randomIndex;
+
+	// While there remain elements to shuffle...
+	while (0 !== currentIndex) {
+		// Pick a remaining element...
+		randomIndex = Math.floor(Math.random() * currentIndex);
+		currentIndex -= 1;
+
+		// And swap it with the current element.
+		temporaryValue = array[currentIndex];
+		array[currentIndex] = array[randomIndex];
+		array[randomIndex] = temporaryValue;
+	}
+
+	return array;
+
+};
+
 
 //stuff that needs to be added in
 var sessions = [];
 var session;
+var test_audio = ["stimuli/1.wav", "stimuli/2.wav", "stimuli/3.wav", "stimuli/4.wav",
+                "stimuli/5.wav", "stimuli/6.wav", "stimuli/7.wav", "stimuli/8.wav",
+                "stimuli/9.wav", "stimuli/10.wav", "stimuli/11.wav", "stimuli/12.wav",
+                "stimuli/13.wav", "stimuli/14.wav", "stimuli/15.wav", "stimuli/16.wav"];
+var cardStim = ["stimuli/1001.jpg", "stimuli/2001.jpg", "stimuli/3001.jpg", "stimuli/4001.jpg"];
 
 
 //not as of yet randomised to something less dumb
@@ -60,13 +87,19 @@ io.on('connection', function(socket){
   socket.on('new player', function(cookie){
     socket.cookie = cookie;
     session = find_session(experiment_id, total_players, socket);
+    //this is the index.html joining the session
+    socket.join(session);
+    io.to(session).emit('images', session.cardStim);
+    io.to(session).emit('audio', session.test_audio[0]);
 
   });
 
 
 //called when each round of the trial loads
   socket.on('loaded', function(cookie){
+    //this is the plugin.js joining the session
     socket.join(session);
+
     session.set_timer();
     session.set_players(socket.id);
     session.clock = setInterval(function(){
@@ -170,6 +203,9 @@ function create_session(experiment_id, total_participants){
   session.started = false;
   session.clients = [];
   session.players = {};
+  session.test_audio = shuffle(test_audio);
+  session.cardStim = shuffle(cardStim);
+  session.trial_num = 1;
 
 
 
@@ -217,16 +253,20 @@ function create_session(experiment_id, total_participants){
     return player_ids
   }
 
+
   // called if someone leaves
   session.leave = function(client) {
+    console.log('leave');
     this.update('leave');
     io.to(this.id).emit('disconnect');
 };
+
 
   // called if someone disconnects
   session.disconnect = function(client) {
     // leaving the session is automatic when client disconnects,
     // TODO: do something useful here
+    console.log('disconnect');
     this.update('disconnect');
     io.to(this.id).emit('disconnect');
   };
@@ -237,8 +277,17 @@ function create_session(experiment_id, total_participants){
 
 //called when the timer runs out to end the trial
 session.end_trial = function(){
+    session.cardStim = shuffle(session.cardStim);
+    io.to(session).emit('images', session.cardStim);
+    io.to(session).emit('audio', session.test_audio[session.trial_num-1]);
+    session.trial_num++;
+    if (session.trial_num==32){
+      io.to(session).emit('end test')
+    };
+    if (session.trial_num%16==0){
+      session.test_audio = shuffle(session.test_audio);
+    };
      io.to(session).emit('end_trial', this.players);
-     console.log(session.players);
      console.log('end trial');
    };
 

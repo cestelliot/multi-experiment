@@ -19,7 +19,12 @@ var test_audio = ["stimuli/1.wav", "stimuli/2.wav", "stimuli/3.wav", "stimuli/4.
                 "stimuli/5.wav", "stimuli/6.wav", "stimuli/7.wav", "stimuli/8.wav",
                 "stimuli/9.wav", "stimuli/10.wav", "stimuli/11.wav", "stimuli/12.wav",
                 "stimuli/13.wav", "stimuli/14.wav", "stimuli/15.wav", "stimuli/16.wav"];
-
+var audio_time = [{stimulus: 'stimuli/1.wav'}, {stimulus: 'stimuli/2.wav'}, {stimulus: 'stimuli/3.wav'}, {stimulus: 'stimuli/4.wav'},
+                {stimulus: 'stimuli/5.wav'}, {stimulus: 'stimuli/6.wav'}, {stimulus: 'stimuli/7.wav'}, {stimulus: 'stimuli/8.wav'},
+                {stimulus: 'stimuli/9.wav'}, {stimulus: 'stimuli/10.wav'}, {stimulus: 'stimuli/11.wav'}, {stimulus: 'stimuli/12.wav'},
+                {stimulus: 'stimuli/13.wav'}, {stimulus: 'stimuli/14.wav'}, {stimulus: 'stimuli/15.wav'}, {stimulus: 'stimuli/16.wav'}]
+var cardStim = ["stimuli/1001.jpg", "stimuli/2001.jpg", "stimuli/3001.jpg", "stimuli/4001.jpg"]
+var trial_audio;
 
 //create a unique user id to navigate around small disconnects + html changes
 var makeCode = function(len){
@@ -66,12 +71,23 @@ var client_join_loop = {
 };
 
 
+//receive the shuffled things from the Server
+socket.on('images', function(data){
+  cardStim = data;
+});
+socket.on('audio', function(data){
+  console.log('audio');
+  trial_audio = data;
+  console.log(trial_audio);
+});
+
+
 
 var trial = {
   timeline:[{
   type: 'multi-experiment',
-  images: ["stimuli/1001.jpg", "stimuli/2001.jpg", "stimuli/3001.jpg", "stimuli/4001.jpg"],
-  stimulus: jsPsych.timelineVariable('stimulus'),
+  images: function(){return cardStim},
+  stimulus: function(){return trial_audio},
   cookie: cookie
 },
 {
@@ -79,13 +95,23 @@ var trial = {
   stimulus: 'Please wait',
   response_ends_trial: false,
   trial_duration: 2000
-}],
-  timeline_variables:   [{stimulus: test_audio[0]}, {stimulus: test_audio[1]}, {stimulus: test_audio[2]}, {stimulus: test_audio[3]},
-    {stimulus: test_audio[4]}, {stimulus: test_audio[5]}, {stimulus: test_audio[6]}, {stimulus: test_audio[7]},
-    {stimulus: test_audio[8]}, {stimulus: test_audio[9]}, {stimulus: test_audio[10]}, {stimulus: test_audio[11]},
-    {stimulus: test_audio[12]}, {stimulus: test_audio[13]}, {stimulus: test_audio[14]}, {stimulus: test_audio[15]}]
+}]
 };
 
+var end_test = false;
+var test_loop = {
+  timeline: [trial],
+  loop_function: function(){
+    if (end_test == false){
+      return true
+    } else {
+      return false
+    }
+  }
+};
+socket.on('end test', function(){
+  end_test = true
+});
 
 
 
@@ -93,7 +119,7 @@ var trial = {
 
 jsPsych.init({
   timeline:[
-    start, client_join_loop, trial
+    start, client_join_loop, test_loop
   ],
   preload_audio: [test_audio],
   on_finish: function(){jsPsych.data.displayData()}
