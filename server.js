@@ -108,7 +108,7 @@ io.on('connection', function(socket){
             io.to(session).emit('state', {players: session.players});
           }, 1000/60);
         session.trial_started=true;
-    }
+    };
 
       //update the socket id if it changed due to a small disconnect or whatever
       for (id in session.players){
