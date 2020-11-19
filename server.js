@@ -99,12 +99,17 @@ io.on('connection', function(socket){
   socket.on('loaded', function(cookie){
     //this is the plugin.js joining the session
     socket.join(session);
-
-    session.set_timer();
     session.set_players(socket.id);
-    session.clock = setInterval(function(){
-        io.to(session).emit('state', {players: session.players});
-      }, 1000/60);
+
+    if (session.trial_started == false){
+
+        session.set_timer();
+        session.clock = setInterval(function(){
+            io.to(session).emit('state', {players: session.players});
+          }, 1000/60);
+        session.trial_started=true;
+    }
+
       //update the socket id if it changed due to a small disconnect or whatever
       for (id in session.players){
         if (id == cookie){
@@ -201,6 +206,7 @@ function create_session(experiment_id, total_participants){
   session.total_participants = total_participants;
   session.trial_limit;
   session.started = false;
+  session.trial_started = false;
   session.clients = [];
   session.players = {};
   session.test_audio = shuffle(test_audio);
@@ -277,6 +283,7 @@ function create_session(experiment_id, total_participants){
 
 //called when the timer runs out to end the trial
 session.end_trial = function(){
+  session.trial_started = false;
     session.cardStim = shuffle(session.cardStim);
     io.to(session).emit('images', session.cardStim);
     io.to(session).emit('audio', session.test_audio[session.trial_num-1]);
@@ -291,11 +298,15 @@ session.end_trial = function(){
      console.log('end trial');
    };
 
+
+
 //set the timer at the start of the trial
    session.set_timer = function(){
      session.trial_limit = setTimeout(session.end_trial, 5e3);
      console.log('timer set');
    };
+
+
 
 //set the players for the round
 session.set_players = function(id){
