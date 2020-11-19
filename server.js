@@ -91,6 +91,13 @@ io.on('connection', function(socket){
     socket.join(session);
     io.to(session).emit('images', session.cardStim);
     io.to(session).emit('audio', session.test_audio[0]);
+    clearInterval(session.clock);
+    session.clock = setInterval(function(){
+      for (player in session.players){
+        let idx = session.players[player].socketID
+        io.to(idx).emit('state', {players: session.players});
+      }
+      }, 1000/60);
 
   });
 
@@ -102,11 +109,7 @@ io.on('connection', function(socket){
     session.set_players(socket.id);
 
     if (session.trial_started == false){
-
         session.set_timer();
-        session.clock = setInterval(function(){
-            io.to(session).emit('state', {players: session.players});
-          }, 1000/60);
         session.trial_started=true;
     };
 
@@ -284,16 +287,22 @@ function create_session(experiment_id, total_participants){
 //called when the timer runs out to end the trial
 session.end_trial = function(){
   session.trial_started = false;
+  //shuffle the images and send them to the clients
     session.cardStim = shuffle(session.cardStim);
     io.to(session).emit('images', session.cardStim);
-    io.to(session).emit('audio', session.test_audio[session.trial_num-1]);
-    session.trial_num++;
+    //check what number trial we are on and either end the test, or reshuffle the audio,
+    //then send it to the clients and increment the trial number
     if (session.trial_num==32){
       io.to(session).emit('end test')
     };
     if (session.trial_num%16==0){
       session.test_audio = shuffle(session.test_audio);
     };
+    io.to(session).emit('audio', session.test_audio[session.trial_num-1]);
+    session.trial_num++;
+    console.log(session.trial_num);
+
+    //tell the participants that the trial has ended and send data to be recorded clientside
      io.to(session).emit('end_trial', this.players);
      console.log('end trial');
    };

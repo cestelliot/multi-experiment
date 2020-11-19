@@ -171,7 +171,7 @@ jsPsych.plugins["multi-experiment"] = (function() {
 
 
     // end trial
-    socket.once('end_trial', function(players){
+    socket.on('end_trial', function(players){
       console.log('trial is over');
       var trial_data = [];
       for (var id in players){
@@ -184,6 +184,8 @@ jsPsych.plugins["multi-experiment"] = (function() {
       clearInterval(movingInterval);
       document.removeEventListener('keydown', keydown);
       document.removeEventListener('keyup', keyup);
+      socket.removeEventListener('state');
+      socket.removeEventListener('end_trial');
       contextfg.clearRect(0, 0, parseInt(trial.canvas_width), parseInt(trial.canvas_height));
       $('canvas').detach();
       display_element.innerHTML = '';
@@ -200,8 +202,8 @@ jsPsych.plugins["multi-experiment"] = (function() {
 
 
     //make the player
-    //possibly change it so colours persist per player?
     socket.on('state', function(players){
+      console.log('state');
       contextfg.clearRect(0, 0, parseInt(trial.canvas_width), parseInt(trial.canvas_height));
       for (var id in players.players){
         let player = players.players[id];
