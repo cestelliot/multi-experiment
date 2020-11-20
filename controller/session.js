@@ -145,9 +145,20 @@ io.on('connection', function(socket){
 
 
 
-socket.on('disconnect', function(){
+  // disconnect is for automatic disconnects like closing the browser window
+  socket.on('disconnect', function () {
+    if(typeof socket.session !== 'undefined'){
+      socket.session.leave();
+    };
+  });
 
-});
+  // leave is for manual disconnects triggered by the client for whatever reason
+  socket.on('leave', function(){
+    if(typeof socket.session !== 'undefined'){
+      socket.session.leave();
+    };
+  });
+
 
 
 
