@@ -204,7 +204,8 @@ function create_session(experiment_id, total_participants){
   session.players = {};
   session.test_audio = shuffle(test_audio);
   session.cardStim = shuffle(cardStim);
-  session.trial_num = 1;
+  session.trial_num = 0;
+  session.total_trials = 32;
 
 
 
@@ -281,15 +282,15 @@ session.end_trial = function(){
     session.cardStim = shuffle(session.cardStim);
     io.to(session).emit('images', session.cardStim);
     //check what number trial we are on and either end the test, or reshuffle the audio,
-    //then send it to the clients and increment the trial number
-    if (session.trial_num==32){
+    //then send it to the clients
+    session.trial_num++;
+    if (session.trial_num==session.total_trials){
       io.to(session).emit('end test')
     };
     if (session.trial_num%16==0){
       session.test_audio = shuffle(session.test_audio);
     };
-    session.trial_num++;
-    io.to(session).emit('audio', session.test_audio[(session.trial_num%16)-1]);
+    io.to(session).emit('audio', session.test_audio[session.trial_num%16]);
     console.log(session.trial_num);
 
     //tell the participants that the trial has ended and send data to be recorded clientside
