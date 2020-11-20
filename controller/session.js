@@ -288,8 +288,8 @@ session.end_trial = function(){
     if (session.trial_num%16==0){
       session.test_audio = shuffle(session.test_audio);
     };
-    io.to(session).emit('audio', session.test_audio[session.trial_num-1]);
     session.trial_num++;
+    io.to(session).emit('audio', session.test_audio[session.trial_num-1]);
     console.log(session.trial_num);
 
     //tell the participants that the trial has ended and send data to be recorded clientside
