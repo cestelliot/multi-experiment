@@ -1,6 +1,6 @@
-const {app} = require('../app'),
+const { v4: uuidv4 } = require('uuid'),
+      {app} = require('../app'),
       {io} = require('../app');
-
 
 
 //random number generation
@@ -8,6 +8,7 @@ function rand(min, max) {
   let randomNum = Math.random() * (max - min) + min;
   return Math.floor(randomNum);
 };
+
 
 
 //shuffle
@@ -53,7 +54,10 @@ var total_players = 2;
 var num_players = 0;
 var start_pos = [{x:350, y:300, colour:'blue'}, {x:450, y:300, colour:'red'}]
 
+
+
 exports.start_socketserver = function(){
+
 
 io.on('connection', function(socket){
 
@@ -150,7 +154,6 @@ socket.on('disconnect', function(){
 
 });
 };
-
 
 
 
