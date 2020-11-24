@@ -29,6 +29,10 @@ jsPsych.plugins["multi-experiment"] = (function() {
       cookie : {
         type: jsPsych.plugins.parameterType.String,
         default: undefined
+      },
+      session_id : {
+        type: jsPsych.plugins.parameterType.String,
+        default: undefined
       }
     }
   }
@@ -177,11 +181,11 @@ jsPsych.plugins["multi-experiment"] = (function() {
       document.removeEventListener('keyup', keyup);
       socket.removeEventListener('state');
       socket.removeEventListener('end_trial');
-      var trial_data = [];
+      var trial_data = {};
       for (var id in players){
         var player = players[id];
         trial_data[id] = {
-          "images": trial.images, 
+          "images": trial.images,
           "player": player.socketID,
           "x": player.x,
           "y": player.y
@@ -198,7 +202,7 @@ jsPsych.plugins["multi-experiment"] = (function() {
 
 
     //when the trial actually begins this tells the server to start a timer and assign players
-    socket.emit('loaded', trial.cookie);
+    socket.emit('loaded', {cookie: trial.cookie, session_id: trial.session_id});
     console.log('loaded');
 
 

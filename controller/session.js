@@ -64,11 +64,11 @@ io.on('connection', function(socket){
 //called when the player finishes the 'start' trial, putting them in a session to wait for others
   socket.on('new player', function(cookie){
     socket.cookie = cookie;
-    session = find_session(experiment_id, total_players, socket);
+    var session = find_session(experiment_id, total_players, socket);
     //this is the index.html joining the session
-    socket.join(session);
-    io.to(session).emit('images', session.cardStim);
-    io.to(session).emit('audio', session.test_audio[0]);
+    io.to(socket.session.id).emit('session id', session.id);
+    io.to(socket.session.id).emit('images', session.cardStim);
+    io.to(socket.session.id).emit('audio', session.test_audio[0]);
     clearInterval(session.clock);
     session.clock = setInterval(function(){
       for (player in session.players){
@@ -81,24 +81,28 @@ io.on('connection', function(socket){
 
 
 //called when each round of the trial loads
-  socket.on('loaded', function(cookie){
+  socket.on('loaded', function(data){
+    socket.join(data.session_id);
+    for (session in sessions){
+      if (sessions[session].id == data.session_id){
+        var session = sessions[session]
+      }
+    };
+    //update the socket id if it changed due to a small disconnect or whatever
+    for (id in session.players){
+      if (id == data.cookie){
+        session.players[data.cookie].socketID = socket.id
+      };
+    }
     //this is the plugin.js joining the session
     //both this and index are needed or the server won't be able to send to things not in the specific plugin
-    socket.join(session);
+    socket.session = session;
     session.set_players(socket.id);
 
     if (session.trial_started == false){
         session.set_timer();
         session.trial_started=true;
     };
-
-      //update the socket id if it changed due to a small disconnect or whatever
-      for (id in session.players){
-        if (id == cookie){
-          session.players[cookie].socketID = socket.id
-        };
-      }
-
   }
   );
 
@@ -108,9 +112,9 @@ io.on('connection', function(socket){
 //update the movement of players and keep them in bounds
   socket.on('movement', function(data){
     var player = {};
-    for (cookie in session.players){
-      if (session.players[cookie].socketID == socket.id){
-        player = session.players[cookie];
+    for (cookie in socket.session.players){
+      if (socket.session.players[cookie].socketID == socket.id){
+        player = socket.session.players[cookie];
       }
     };
     if(data.left){
@@ -225,6 +229,10 @@ function create_session(experiment_id, total_participants){
   session.join =  function(experiment_id, total_participants, client) {
     // check if experiment has already started or if session is full
     if(this.experiment_id !== experiment_id || total_participants !== this.total_participants || this.started || this.participants() >= this.total_participants) {
+      console.log('room full')
+      if (session.players.includes(client.cookie)==true){
+        console.log('cookie found')
+      };
       return false;
     }
     client.join(this.id);
@@ -257,7 +265,6 @@ function create_session(experiment_id, total_participants){
   // called if someone leaves
   session.leave = function(client) {
     console.log('leave');
-    this.update('leave');
     io.to(this.id).emit('disconnect');
 };
 
@@ -267,7 +274,6 @@ function create_session(experiment_id, total_participants){
     // leaving the session is automatic when client disconnects,
     // TODO: do something useful here
     console.log('disconnect');
-    this.update('disconnect');
     io.to(this.id).emit('disconnect');
   };
 
@@ -280,21 +286,21 @@ session.end_trial = function(){
   session.trial_started = false;
   //shuffle the images and send them to the clients
     session.cardStim = shuffle(session.cardStim);
-    io.to(session).emit('images', session.cardStim);
+    io.to(session.id).emit('images', session.cardStim);
     //check what number trial we are on and either end the test, or reshuffle the audio,
     //then send it to the clients
     session.trial_num++;
     if (session.trial_num==session.total_trials){
-      io.to(session).emit('end test')
+      io.to(session.id).emit('end test')
     };
     if (session.trial_num%16==0){
       session.test_audio = shuffle(session.test_audio);
     };
-    io.to(session).emit('audio', session.test_audio[session.trial_num%16]);
+    io.to(session.id).emit('audio', session.test_audio[session.trial_num%16]);
     console.log(session.trial_num);
 
     //tell the participants that the trial has ended and send data to be recorded clientside
-     io.to(session).emit('end_trial', this.players);
+     io.to(session.id).emit('end_trial', session.players);
      console.log('end trial');
    };
 

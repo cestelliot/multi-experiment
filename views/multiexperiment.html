@@ -68,14 +68,20 @@ var client_join_loop = {
 };
 
 
+//tell the plugin what session we have joined
+var session_id;
+socket.on('session id', function(data){
+  session_id = data;
+  console.log(session_id)
+});
+
+
 //receive the shuffled things from the Server
 socket.on('images', function(data){
   cardStim = data;
 });
 socket.on('audio', function(data){
-  console.log('audio');
   trial_audio = data;
-  console.log(trial_audio);
 });
 
 
@@ -85,7 +91,8 @@ var trial = {
   type: 'multi-experiment',
   images: function(){return cardStim},
   stimulus: function(){return trial_audio},
-  cookie: cookie
+  cookie: function(){return cookie},
+  session_id: function(){return session_id}
 },
 {
   type: 'html-keyboard-response',
