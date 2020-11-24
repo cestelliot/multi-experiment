@@ -38,7 +38,8 @@ var cookie = makeCode(10);
 
 var start = {
   type: 'html-keyboard-response',
-  stimulus: 'Press space to find a partner',
+  stimulus: '<p>You will hear a word, please use the arrow keys to move to the image that you think corresponds to the word.</p>'+
+            '<p>Press space to find a partner;</p>',
   choices: [32],
   on_finish: function(){
       socket.emit('new player', cookie);
