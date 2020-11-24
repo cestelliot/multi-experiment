@@ -205,7 +205,7 @@ function create_session(experiment_id, total_participants){
   session.test_audio = shuffle(test_audio);
   session.cardStim = shuffle(cardStim);
   session.trial_num = 0;
-  session.total_trials = 32;
+  session.total_trials = 16;
 
 
 

@@ -173,19 +173,21 @@ jsPsych.plugins["multi-experiment"] = (function() {
     // end trial
     socket.on('end_trial', function(players){
       console.log('trial is over');
+      document.removeEventListener('keydown', keydown);
+      document.removeEventListener('keyup', keyup);
+      socket.removeEventListener('state');
+      socket.removeEventListener('end_trial');
       var trial_data = [];
       for (var id in players){
         var player = players[id];
         trial_data[id] = {
+          "images": trial.images, 
+          "player": player.socketID,
           "x": player.x,
           "y": player.y
         }
       };
       clearInterval(movingInterval);
-      document.removeEventListener('keydown', keydown);
-      document.removeEventListener('keyup', keyup);
-      socket.removeEventListener('state');
-      socket.removeEventListener('end_trial');
       contextfg.clearRect(0, 0, parseInt(trial.canvas_width), parseInt(trial.canvas_height));
       $('canvas').detach();
       display_element.innerHTML = '';
