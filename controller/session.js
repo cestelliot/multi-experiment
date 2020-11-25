@@ -230,9 +230,6 @@ function create_session(experiment_id, total_participants){
     // check if experiment has already started or if session is full
     if(this.experiment_id !== experiment_id || total_participants !== this.total_participants || this.started || this.participants() >= this.total_participants) {
       console.log('room full')
-      if (session.players.includes(client.cookie)==true){
-        console.log('cookie found')
-      };
       return false;
     }
     client.join(this.id);
