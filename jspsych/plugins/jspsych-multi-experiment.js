@@ -40,6 +40,7 @@ jsPsych.plugins["multi-experiment"] = (function() {
   plugin.trial = function(display_element, trial) {
 
     //set up canvas and place the images
+    var trajectory = [];
     var canvasbg;
     var contextbg;
     var canvasfg;
@@ -187,9 +188,10 @@ jsPsych.plugins["multi-experiment"] = (function() {
         trial_data[id] = {
           "images": trial.images,
           "player": player.socketID,
-          "x": player.x,
-          "y": player.y
+          "final_x": player.x,
+          "final_y": player.y
         }
+        trial_data.push(trajectory);
       };
       clearInterval(movingInterval);
       contextfg.clearRect(0, 0, parseInt(trial.canvas_width), parseInt(trial.canvas_height));
@@ -209,8 +211,8 @@ jsPsych.plugins["multi-experiment"] = (function() {
 
     //make the player
     socket.on('state', function(players){
-      console.log('state');
       contextfg.clearRect(0, 0, parseInt(trial.canvas_width), parseInt(trial.canvas_height));
+      trajectory.push(players.players);
       for (var id in players.players){
         let player = players.players[id];
         contextfg.fillStyle = player.colour;

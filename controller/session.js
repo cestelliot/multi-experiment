@@ -152,6 +152,7 @@ io.on('connection', function(socket){
   // disconnect is for automatic disconnects like closing the browser window
   socket.on('disconnect', function () {
     if(typeof socket.session !== 'undefined'){
+      console.log('disconnect');
       socket.session.leave();
     };
   });
@@ -159,6 +160,7 @@ io.on('connection', function(socket){
   // leave is for manual disconnects triggered by the client for whatever reason
   socket.on('leave', function(){
     if(typeof socket.session !== 'undefined'){
+      console.log('leave');
       socket.session.leave();
     };
   });
@@ -209,7 +211,7 @@ function create_session(experiment_id, total_participants){
   session.test_audio = shuffle(test_audio);
   session.cardStim = shuffle(cardStim);
   session.trial_num = 0;
-  session.total_trials = 16;
+  session.total_trials = 1;
 
 
 
