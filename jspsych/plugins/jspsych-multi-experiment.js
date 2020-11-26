@@ -40,7 +40,7 @@ jsPsych.plugins["multi-experiment"] = (function() {
   plugin.trial = function(display_element, trial) {
 
     //set up canvas and place the images
-    var trajectory = [];
+    var trajectory = {x:[], y:[]};
     var canvasbg;
     var contextbg;
     var canvasfg;
@@ -184,14 +184,18 @@ jsPsych.plugins["multi-experiment"] = (function() {
       socket.removeEventListener('end_trial');
       var trial_data = [];
       for (var id in players){
-        var player = players[id];
-        trial_data[id] = {
-          "images": trial.images,
-          "player": player.socketID,
-          "final_x": player.x,
-          "final_y": player.y
+        if (id == trial.cookie){
+          var player = players[id];
+          trial_data[id] = {
+            "images": trial.images,
+            "player": player.socketID,
+            "x_trajectory": trajectory.x,
+            "y_trajectory": trajectory.y,
+            "final_x": player.x,
+            "final_y": player.y
+          }
         }
-        trial_data.push(trajectory);
+
       };
       clearInterval(movingInterval);
       contextfg.clearRect(0, 0, parseInt(trial.canvas_width), parseInt(trial.canvas_height));
@@ -212,9 +216,12 @@ jsPsych.plugins["multi-experiment"] = (function() {
     //make the player
     socket.on('state', function(players){
       contextfg.clearRect(0, 0, parseInt(trial.canvas_width), parseInt(trial.canvas_height));
-      trajectory.push(players.players);
       for (var id in players.players){
         let player = players.players[id];
+        if (id == trial.cookie){
+          trajectory.x.push(player.x);
+          trajectory.y.push(player.y);
+        }
         contextfg.fillStyle = player.colour;
         contextfg.beginPath();
         contextfg.arc(player.x, player.y, 10, 0, 2*Math.PI);
