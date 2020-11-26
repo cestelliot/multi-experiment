@@ -182,7 +182,7 @@ jsPsych.plugins["multi-experiment"] = (function() {
       document.removeEventListener('keyup', keyup);
       socket.removeEventListener('state');
       socket.removeEventListener('end_trial');
-      var trial_data = {};
+      var trial_data = [];
       for (var id in players){
         var player = players[id];
         trial_data[id] = {
