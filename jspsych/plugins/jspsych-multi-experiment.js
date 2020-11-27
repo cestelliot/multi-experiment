@@ -40,6 +40,7 @@ jsPsych.plugins["multi-experiment"] = (function() {
   plugin.trial = function(display_element, trial) {
 
     //set up canvas and place the images
+    socket.session_id = trial.session_id;
     var trajectory = {x:[], y:[]};
     var canvasbg;
     var contextbg;
@@ -208,7 +209,7 @@ jsPsych.plugins["multi-experiment"] = (function() {
 
 
     //when the trial actually begins this tells the server to start a timer and assign players
-    socket.emit('loaded', {cookie: trial.cookie, session_id: trial.session_id});
+    socket.emit('loaded', {cookie: trial.cookie, session_id: trial.session_id, socket_id: socket.id});
     console.log('loaded');
 
 

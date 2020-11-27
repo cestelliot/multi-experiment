@@ -35,8 +35,7 @@ var shuffle = function (array) {
 
 
 //stuff that needs to be added in
-var sessions = [];
-var session;
+var sessions = {};
 var test_audio = ["stimuli/1.wav", "stimuli/2.wav", "stimuli/3.wav", "stimuli/4.wav",
                 "stimuli/5.wav", "stimuli/6.wav", "stimuli/7.wav", "stimuli/8.wav",
                 "stimuli/9.wav", "stimuli/10.wav", "stimuli/11.wav", "stimuli/12.wav",
@@ -64,57 +63,36 @@ io.on('connection', function(socket){
 //called when the player finishes the 'start' trial, putting them in a session to wait for others
   socket.on('new player', function(cookie){
     socket.cookie = cookie;
-    var session = find_session(experiment_id, total_players, socket);
+    let session = find_session(experiment_id, total_players, socket);
     //this is the index.html joining the session
-    io.to(socket.session.id).emit('session id', session.id);
-    io.to(socket.session.id).emit('images', session.cardStim);
-    io.to(socket.session.id).emit('audio', session.test_audio[0]);
+    io.to(session.id).emit('session id', session.id);
+    io.to(session.id).emit('images', session.cardStim);
+    io.to(session.id).emit('audio', session.test_audio[0]);
     clearInterval(session.clock);
-    session.clock = setInterval(function(){
-      for (player in session.players){
-        let idx = session.players[player].socketID
-        io.to(idx).emit('state', {players: session.players});
-      }
-      }, 1000/60);
+
 
   });
 
 
 //called when each round of the trial loads
   socket.on('loaded', function(data){
-    socket.join(data.session_id);
-    for (session in sessions){
-      if (sessions[session].id == data.session_id){
-        var session = sessions[session]
-      }
-    };
-    //update the socket id if it changed due to a small disconnect or whatever
-    for (id in session.players){
-      if (id == data.cookie){
-        session.players[data.cookie].socketID = socket.id
-      };
-    }
-    //this is the plugin.js joining the session
-    //both this and index are needed or the server won't be able to send to things not in the specific plugin
-    socket.session = session;
-    session.set_players(socket.id);
+      socket.join(data.session_id);
+      let session = sessions[data.session_id];
+      socket.session = session;
+      session.loaded(session, data);
 
-    if (session.trial_started == false){
-        session.set_timer();
-        session.trial_started=true;
-    };
-  }
-  );
+      });
 
 
 
 
 //update the movement of players and keep them in bounds
   socket.on('movement', function(data){
+    let session = sessions[socket.session_id];
     var player = {};
-    for (cookie in socket.session.players){
-      if (socket.session.players[cookie].socketID == socket.id){
-        player = socket.session.players[cookie];
+    for (cookie in session.players){
+      if (session.players[cookie].socketID == socket.id){
+        player = session.players[cookie];
       }
     };
     if(data.left){
@@ -180,17 +158,17 @@ function find_session(experiment_id, participants, client){
   var session;
 
   // first join sessions that are waiting for players
-  for(var i=0; i<sessions.length; i++){
-    if(sessions[i].join(experiment_id, participants, client)){
-      session = sessions[i];
+  for(id in sessions){
+    if(sessions[id].join(experiment_id, participants, client)){
+      session = sessions[id];
       break;
     }
   }
   // otherwise, create a new session and join it.
   if(typeof session == 'undefined'){
     session = create_session(experiment_id, participants);
-    sessions.push(session);
     session.join(experiment_id, participants, client);
+    sessions[session.id] = session;
   }
 
   return session;
@@ -211,7 +189,7 @@ function create_session(experiment_id, total_participants){
   session.test_audio = shuffle(test_audio);
   session.cardStim = shuffle(cardStim);
   session.trial_num = 0;
-  session.total_trials = 1;
+  session.total_trials = 16;
 
 
 
@@ -245,6 +223,7 @@ function create_session(experiment_id, total_participants){
     if(this.participants() == this.total_participants){
       this.started = true;
       io.to(this.id).emit('room full');
+      num_players=0;
     }
     return true;
   };
@@ -280,7 +259,7 @@ function create_session(experiment_id, total_participants){
 
 
 //called when the timer runs out to end the trial
-session.end_trial = function(){
+session.end_trial = function(session){
   session.trial_started = false;
   //shuffle the images and send them to the clients
     session.cardStim = shuffle(session.cardStim);
@@ -299,21 +278,48 @@ session.end_trial = function(){
 
     //tell the participants that the trial has ended and send data to be recorded clientside
      io.to(session.id).emit('end_trial', session.players);
+     clearInterval(session.clock);
      console.log('end trial');
    };
 
 
+//called when players load in
+session.loaded = function(session, data){
+      session.set_players(session, data.socket_id);
+      //update the socket id if it changed due to a small disconnect or whatever
+      for (id in session.players){
+        if (id == data.cookie){
+          session.players[data.cookie].socketID = data.socket_id
+        };
+      }
+
+
+      if (session.trial_started == false){
+          session.set_timer(session);
+          session.set_clock(session);
+          session.trial_started=true;
+      };
+}
+
+
+
 
 //set the timer at the start of the trial
-   session.set_timer = function(){
-     session.trial_limit = setTimeout(session.end_trial, 5e3);
+   session.set_timer = function(session){
+     session.trial_limit = setTimeout(session.end_trial, 5e3, session);
      console.log('timer set');
    };
+
+//set the clock for the trial
+session.set_clock = function(session){
+    session.clock = setInterval(function(){
+    io.to(session.id).emit('state', {players: session.players});
+  }, 1000/30)}
 
 
 
 //set the players for the round
-session.set_players = function(id){
+session.set_players = function(session, id){
   for (id in session.players){
     session.players[id].x = rand(350, 450);
     session.players[id].y = rand(250, 350);
