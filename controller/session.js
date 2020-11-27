@@ -88,32 +88,32 @@ io.on('connection', function(socket){
 
 //update the movement of players and keep them in bounds
   socket.on('movement', function(data){
-    let session = sessions[socket.session_id];
+    let session = sessions[data.session_id];
     var player = {};
     for (cookie in session.players){
       if (session.players[cookie].socketID == socket.id){
         player = session.players[cookie];
       }
     };
-    if(data.left){
+    if(data.movement.left){
       player.x -= 2;
       if (player.x<0){
         player.x=0
       };
     };
-    if(data.up){
+    if(data.movement.up){
       player.y -= 2;
       if (player.y < 0){
         player.y=0
       };
     };
-    if(data.right){
+    if(data.movement.right){
       player.x += 2;
       if (player.x>800){
         player.x=800
       };
     };
-    if(data.down){
+    if(data.movement.down){
       player.y += 2;
       if (player.y>600){
         player.y=600

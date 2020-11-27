@@ -163,7 +163,7 @@ jsPsych.plugins["multi-experiment"] = (function() {
     document.addEventListener('keyup', keyup);
 
     var movingInterval = setInterval(function(){
-      socket.emit('movement', movement);
+      socket.emit('movement', {movement: movement, session_id:trial.session_id});
     }, 1000/60);
 
 
