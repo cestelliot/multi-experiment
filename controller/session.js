@@ -289,7 +289,7 @@ session.loaded = function(data){
       this.set_players();
       console.log(this.participants());
       this.set_timer();
-      this.set_clock = setInterval(this.clock, 1000/30, this);
+      this.set_clock = setInterval(this.clock, 1000/60, this);
       this.trial_started=true;
       };
 }
