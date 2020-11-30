@@ -68,7 +68,7 @@ io.on('connection', function(socket){
     io.to(session.id).emit('session id', session.id);
     io.to(session.id).emit('images', session.cardStim);
     io.to(session.id).emit('audio', session.test_audio[0]);
-    clearInterval(session.clock);
+    clearInterval(session.set_clock);
 
 
   });
@@ -77,10 +77,10 @@ io.on('connection', function(socket){
 //called when each round of the trial loads
   socket.on('loaded', function(data){
       socket.join(data.session_id);
-      let session = sessions[data.session_id];
-      socket.session = session;
-      session.loaded(session, data);
-
+      sessions[data.session_id].loaded(data);
+      for (session in sessions){
+        console.log(sessions[session].players);
+      };
       });
 
 
@@ -88,11 +88,10 @@ io.on('connection', function(socket){
 
 //update the movement of players and keep them in bounds
   socket.on('movement', function(data){
-    let session = sessions[data.session_id];
-    var player = {};
-    for (cookie in session.players){
-      if (session.players[cookie].socketID == socket.id){
-        player = session.players[cookie];
+    let player = {};
+    for (cookie in sessions[data.session_id].players){
+      if (sessions[data.session_id].players[cookie].socketID == data.socket_id){
+        player = sessions[data.session_id].players[cookie];
       }
     };
     if(data.movement.left){
@@ -213,9 +212,9 @@ function create_session(experiment_id, total_participants){
     }
     client.join(this.id);
     client.session = this;
-    var address = client.cookie;
-    session.players[address] = start_pos[num_players];
-    session.players[address].socketID = client.id
+    let address = client.cookie;
+    this.players[address] = start_pos[num_players];
+    this.players[address].socketID = client.id
     num_players++;
 
 
@@ -261,6 +260,7 @@ function create_session(experiment_id, total_participants){
 //called when the timer runs out to end the trial
 session.end_trial = function(session){
   session.trial_started = false;
+  clearInterval(session.set_clock);
   //shuffle the images and send them to the clients
     session.cardStim = shuffle(session.cardStim);
     io.to(session.id).emit('images', session.cardStim);
@@ -278,26 +278,27 @@ session.end_trial = function(session){
 
     //tell the participants that the trial has ended and send data to be recorded clientside
      io.to(session.id).emit('end_trial', session.players);
-     clearInterval(session.clock);
+
      console.log('end trial');
    };
 
 
 //called when players load in
-session.loaded = function(session, data){
-      session.set_players(session, data.socket_id);
+session.loaded = function(data){
+      this.set_players();
+      console.log(this.participants());
       //update the socket id if it changed due to a small disconnect or whatever
-      for (id in session.players){
+      for (id in this.players){
         if (id == data.cookie){
-          session.players[data.cookie].socketID = data.socket_id
+          this.players[id].socketID = data.socket_id
         };
-      }
+      };
 
 
-      if (session.trial_started == false){
-          session.set_timer(session);
-          session.set_clock(session);
-          session.trial_started=true;
+      if (this.trial_started == false){
+          this.set_timer();
+          this.set_clock = setInterval(this.clock, 1000/30, this);
+          this.trial_started=true;
       };
 }
 
@@ -305,24 +306,26 @@ session.loaded = function(session, data){
 
 
 //set the timer at the start of the trial
-   session.set_timer = function(session){
-     session.trial_limit = setTimeout(session.end_trial, 5e3, session);
+   session.set_timer = function(){
+     this.trial_limit = setTimeout(this.end_trial, 5e3, this);
      console.log('timer set');
    };
 
+
 //set the clock for the trial
-session.set_clock = function(session){
-    session.clock = setInterval(function(){
+session.clock = function(session){
     io.to(session.id).emit('state', {players: session.players});
-  }, 1000/30)}
+}
+
+
 
 
 
 //set the players for the round
-session.set_players = function(session, id){
-  for (id in session.players){
-    session.players[id].x = rand(350, 450);
-    session.players[id].y = rand(250, 350);
+session.set_players = function(){
+  for (id in this.players){
+    this.players[id].x = rand(350, 450);
+    this.players[id].y = rand(250, 350);
   }
 
 };

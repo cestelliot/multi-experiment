@@ -163,7 +163,7 @@ jsPsych.plugins["multi-experiment"] = (function() {
     document.addEventListener('keyup', keyup);
 
     var movingInterval = setInterval(function(){
-      socket.emit('movement', {movement: movement, session_id:trial.session_id});
+      socket.emit('movement', {movement: movement, session_id:trial.session_id, socket_id:socket.id});
     }, 1000/60);
 
 
@@ -210,12 +210,12 @@ jsPsych.plugins["multi-experiment"] = (function() {
 
     //when the trial actually begins this tells the server to start a timer and assign players
     socket.emit('loaded', {cookie: trial.cookie, session_id: trial.session_id, socket_id: socket.id});
-    console.log('loaded');
 
 
 
     //make the player
     socket.on('state', function(players){
+      console.log('state');
       contextfg.clearRect(0, 0, parseInt(trial.canvas_width), parseInt(trial.canvas_height));
       for (var id in players.players){
         let player = players.players[id];
