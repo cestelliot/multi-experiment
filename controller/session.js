@@ -49,9 +49,6 @@ var experiment_id = 1;
 var total_players = 2;
 
 
-//player detection
-var num_players = 0;
-var start_pos = [{x:350, y:300, colour:'blue'}, {x:450, y:300, colour:'red'}]
 
 
 
@@ -213,16 +210,13 @@ function create_session(experiment_id, total_participants){
     client.join(this.id);
     client.session = this;
     let address = client.cookie;
-    this.players[address] = start_pos[num_players];
-    this.players[address].socketID = client.id
-    num_players++;
+    this.players[address] = {x: 400, y: 300, socketID: client.id};
 
 
     // when session is full, send start message
     if(this.participants() == this.total_participants){
       this.started = true;
       io.to(this.id).emit('room full');
-      num_players=0;
     }
     return true;
   };
@@ -285,20 +279,18 @@ session.end_trial = function(session){
 
 //called when players load in
 session.loaded = function(data){
+  //update the socket id if it changed due to a small disconnect or whatever
+  for (id in this.players){
+    if (data.cookie == id){
+      this.players[id].socketID = data.socket_id
+    };
+  };
+    if (this.trial_started == false){
       this.set_players();
       console.log(this.participants());
-      //update the socket id if it changed due to a small disconnect or whatever
-      for (id in this.players){
-        if (id == data.cookie){
-          this.players[id].socketID = data.socket_id
-        };
-      };
-
-
-      if (this.trial_started == false){
-          this.set_timer();
-          this.set_clock = setInterval(this.clock, 1000/30, this);
-          this.trial_started=true;
+      this.set_timer();
+      this.set_clock = setInterval(this.clock, 1000/30, this);
+      this.trial_started=true;
       };
 }
 

@@ -222,8 +222,11 @@ jsPsych.plugins["multi-experiment"] = (function() {
         if (id == trial.cookie){
           trajectory.x.push(player.x);
           trajectory.y.push(player.y);
+          var colour = 'blue';
+        } else {
+          var colour = 'red';
         }
-        contextfg.fillStyle = player.colour;
+        contextfg.fillStyle = colour;
         contextfg.beginPath();
         contextfg.arc(player.x, player.y, 10, 0, 2*Math.PI);
         contextfg.fill();
