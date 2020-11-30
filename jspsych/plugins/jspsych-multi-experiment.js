@@ -37,6 +37,10 @@ jsPsych.plugins["multi-experiment"] = (function() {
       continuous_feedback : {
         type: jsPsych.plugins.parameterType.BOOL,
         default: true
+      },
+      num_players : {
+        type: jsPsych.plugins.parameterType.INT,
+        default: 2
       }
     }
   }

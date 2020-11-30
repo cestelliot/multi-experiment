@@ -45,8 +45,7 @@ var cardStim = ["stimuli/1001.jpg", "stimuli/2001.jpg", "stimuli/3001.jpg", "sti
 
 //not as of yet randomised to something less dumb
 var experiment_id = 1;
-//this could be passed by the multiexperiment plugin but right now it isn't
-var total_players = 2;
+
 
 
 
@@ -58,8 +57,9 @@ exports.start_socketserver = function(){
 io.on('connection', function(socket){
 
 //called when the player finishes the 'start' trial, putting them in a session to wait for others
-  socket.on('new player', function(cookie){
-    socket.cookie = cookie;
+  socket.on('new player', function(data){
+    socket.cookie = data.cookie;
+    var total_players = data.num_players
     let session = find_session(experiment_id, total_players, socket);
     //this is the index.html joining the session
     io.to(session.id).emit('session id', session.id);

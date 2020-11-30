@@ -34,6 +34,8 @@ var makeCode = function(len){
 };
 var cookie = makeCode(10);
 
+var num_players = 4;
+
 
 
 var start = {
@@ -42,7 +44,7 @@ var start = {
             '<p>Press space to find a partner;</p>',
   choices: [32],
   on_finish: function(){
-      socket.emit('new player', cookie);
+      socket.emit('new player', {cookie: cookie, num_players: num_players});
   }
 };
 
@@ -53,7 +55,7 @@ socket.on('room full', function(){
 });
 var client_join = {
   type: 'html-keyboard-response',
-  stimulus: 'Please wait while we find you a partner.',
+  stimulus: 'Please wait while we find other players.',
   response_ends_trial: false,
   trial_duration: 500
 };
@@ -94,7 +96,8 @@ var trial = {
   stimulus: function(){return trial_audio},
   cookie: function(){return cookie},
   session_id: function(){return session_id},
-  continuous_feedback: false
+  continuous_feedback: true,
+  num_players: num_players
 },
 {
   type: 'html-keyboard-response',
