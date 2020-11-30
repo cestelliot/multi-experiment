@@ -218,31 +218,36 @@ jsPsych.plugins["multi-experiment"] = (function() {
 
 
     //make the player
+    //this could be tidied up i think but it works so i'm wary about changing much
     var ticks = 0;
     socket.on('state', function(players){
       ticks++;
       contextfg.clearRect(0, 0, parseInt(trial.canvas_width), parseInt(trial.canvas_height));
       for (var id in players.players){
+        //first check if we want participants to be able to see what other people are doing
         if (trial.continuous_feedback == true || ticks >= 90){
           let player = players.players[id];
+          //push the trajectories to a storage for data, make the player blue for themselves
           if (id == trial.cookie){
             trajectory.x.push(player.x);
             trajectory.y.push(player.y);
             var colour = 'blue';
           } else {
+            //make other players red
             var colour = 'red';
           }
+          //draw in players based on this
           contextfg.fillStyle = colour;
           contextfg.beginPath();
           contextfg.arc(player.x, player.y, 10, 0, 2*Math.PI);
           contextfg.fill();
         } else {
+          //this is when we don't want other players to be drawn, the client can only see their own piece
           let player = players.players[id];
           if (id == trial.cookie){
             trajectory.x.push(player.x);
             trajectory.y.push(player.y);
-            var colour = 'blue';
-            contextfg.fillStyle = colour;
+            contextfg.fillStyle = 'blue';
             contextfg.beginPath();
             contextfg.arc(player.x, player.y, 10, 0, 2*Math.PI);
             contextfg.fill();
