@@ -33,6 +33,10 @@ jsPsych.plugins["multi-experiment"] = (function() {
       session_id : {
         type: jsPsych.plugins.parameterType.String,
         default: undefined
+      },
+      continuous_feedback : {
+        type: jsPsych.plugins.parameterType.BOOL,
+        default: true
       }
     }
   }
@@ -214,22 +218,37 @@ jsPsych.plugins["multi-experiment"] = (function() {
 
 
     //make the player
+    var ticks = 0;
     socket.on('state', function(players){
-      console.log('state');
+      ticks++;
       contextfg.clearRect(0, 0, parseInt(trial.canvas_width), parseInt(trial.canvas_height));
       for (var id in players.players){
-        let player = players.players[id];
-        if (id == trial.cookie){
-          trajectory.x.push(player.x);
-          trajectory.y.push(player.y);
-          var colour = 'blue';
+        if (trial.continuous_feedback == true || ticks >= 90){
+          let player = players.players[id];
+          if (id == trial.cookie){
+            trajectory.x.push(player.x);
+            trajectory.y.push(player.y);
+            var colour = 'blue';
+          } else {
+            var colour = 'red';
+          }
+          contextfg.fillStyle = colour;
+          contextfg.beginPath();
+          contextfg.arc(player.x, player.y, 10, 0, 2*Math.PI);
+          contextfg.fill();
         } else {
-          var colour = 'red';
+          let player = players.players[id];
+          if (id == trial.cookie){
+            trajectory.x.push(player.x);
+            trajectory.y.push(player.y);
+            var colour = 'blue';
+            contextfg.fillStyle = colour;
+            contextfg.beginPath();
+            contextfg.arc(player.x, player.y, 10, 0, 2*Math.PI);
+            contextfg.fill();
+          }
         }
-        contextfg.fillStyle = colour;
-        contextfg.beginPath();
-        contextfg.arc(player.x, player.y, 10, 0, 2*Math.PI);
-        contextfg.fill();
+
       }
     });
 
