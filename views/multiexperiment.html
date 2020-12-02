@@ -34,7 +34,8 @@ var makeCode = function(len){
 };
 var cookie = makeCode(10);
 
-var num_players = 4;
+var num_players = 3;
+var trial_idx = 1
 
 
 
@@ -96,7 +97,14 @@ var trial = {
   stimulus: function(){return trial_audio},
   cookie: function(){return cookie},
   session_id: function(){return session_id},
-  continuous_feedback: true,
+  continuous_feedback: function(){
+    if (trial_idx <=2){
+      trial_idx++;
+      return true
+    } else {
+      return false
+    }
+  },
   num_players: num_players
 },
 {
