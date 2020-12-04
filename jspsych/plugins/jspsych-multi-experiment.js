@@ -54,6 +54,7 @@ jsPsych.plugins["multi-experiment"] = (function() {
     var contextbg;
     var canvasfg;
     var contextfg;
+    var imgs = {}
 
     drawCanvas();
     function drawCanvas() {
@@ -91,15 +92,19 @@ jsPsych.plugins["multi-experiment"] = (function() {
         image4.src = trial.images[3];
         image1.onload = function(){
           contextbg.drawImage(image1, 0, 0);
+          imgs[1] = {width: this.width, height:this.height};
         };
         image2.onload = function(){
           contextbg.drawImage(image2, (parseInt(trial.canvas_width)-this.width), 0);
+          imgs[2] = {width: this.width, height:this.height};
         };
         image3.onload = function(){
           contextbg.drawImage(image3, 0, (parseInt(trial.canvas_height)-this.height));
+          imgs[3] = {width: this.width, height:this.height};
         };
         image4.onload = function(){
           contextbg.drawImage(image4, (parseInt(trial.canvas_width)-this.width), parseInt(trial.canvas_height)-this.height);
+          imgs[4] = {width: this.width, height:this.height};
         };
     };
 
@@ -195,13 +200,24 @@ jsPsych.plugins["multi-experiment"] = (function() {
       for (var id in players){
         if (id == trial.cookie){
           var player = players[id];
+          if (player.x <= imgs[1].width && player.y <= imgs[1].height){
+            var image_choice = trial.images[0]
+          } else if (parseInt(trial.canvas_width) - imgs[2].width <= player.x && player.y <= imgs[2].height){
+            var image_choice = trial.images[1]
+          } else if (player.x <= imgs[3].width && parseInt(trial.canvas_height)-imgs[3].height <= player.y ){
+            var image_choice = trial.images[2]
+          } else if (parseInt(trial.canvas_width) - imgs[4].width <= player.x && parseInt(trial.canvas_height)-imgs[4].height <= player.y){
+            var image_choice = trial.images[3]
+          } else {
+            var image_choice = 'No choice'
+          };
           trial_data[id] = {
-            "images": trial.images,
-            "player": player.socketID,
+            "stimulus": trial.stimulus,
             "x_trajectory": trajectory.x,
             "y_trajectory": trajectory.y,
             "final_x": player.x,
-            "final_y": player.y
+            "final_y": player.y,
+            "image_choice": image_choice
           }
         }
 
@@ -260,6 +276,20 @@ jsPsych.plugins["multi-experiment"] = (function() {
 
       }
     });
+
+
+    //when someone disconnects stop most of the process
+    socket.on('disconnect', function(){
+      clearInterval(movingInterval);
+      document.removeEventListener('keydown', keydown);
+      document.removeEventListener('keyup', keyup);
+      socket.removeEventListener('state');
+      socket.removeEventListener('end_trial');
+      contextfg.clearRect(0, 0, parseInt(trial.canvas_width), parseInt(trial.canvas_height));
+      $('canvas').detach();
+      display_element.innerHTML = '';
+      jsPsych.finishTrial();
+    })
 
 
   };

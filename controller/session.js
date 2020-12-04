@@ -75,9 +75,6 @@ io.on('connection', function(socket){
   socket.on('loaded', function(data){
       socket.join(data.session_id);
       sessions[data.session_id].loaded(data);
-      for (session in sessions){
-        console.log(sessions[session].players);
-      };
       });
 
 
@@ -131,12 +128,20 @@ io.on('connection', function(socket){
     };
   });
 
+
   // leave is for manual disconnects triggered by the client for whatever reason
   socket.on('leave', function(){
     if(typeof socket.session !== 'undefined'){
-      console.log('leave');
+      console.log('leave outside');
       socket.session.leave();
     };
+  });
+
+
+  //destroy the room at the end of the experiment
+  socket.on('end of experiment', function(data){
+    setTimeout(destroy_session, 3e4, data);
+    console.log(sessions);
   });
 
 
@@ -185,7 +190,7 @@ function create_session(experiment_id, total_participants){
   session.test_audio = shuffle(test_audio);
   session.cardStim = shuffle(cardStim);
   session.trial_num = 0;
-  session.total_trials = 4;
+  session.total_trials = 16;
 
 
 
@@ -236,6 +241,7 @@ function create_session(experiment_id, total_participants){
   session.leave = function(client) {
     console.log('leave');
     io.to(this.id).emit('disconnect');
+    console.log(this.participants())
 };
 
 
@@ -245,6 +251,7 @@ function create_session(experiment_id, total_participants){
     // TODO: do something useful here
     console.log('disconnect');
     io.to(this.id).emit('disconnect');
+    clearInterval(this.set_clock);
   };
 
 
@@ -270,6 +277,19 @@ session.end_trial = function(session){
     io.to(session.id).emit('audio', session.test_audio[session.trial_num%16]);
     console.log(session.trial_num);
 
+    //check that players definitely moved - implement something where if they havent done it for a while they are disconnected
+    for (id in session.players){
+      if (session.players[id].start_x == session.players[id].x && session.players[id].start_y == session.players[id].y){
+        if (session.players[id].no_moves == undefined){
+          session.players[id].no_moves = 1;
+        } else {
+          session.players[id].no_moves++;
+        }
+      } else {
+        session.players[id].no_moves = 0;
+      }
+    };
+
     //tell the participants that the trial has ended and send data to be recorded clientside
      io.to(session.id).emit('end_trial', session.players);
 
@@ -287,7 +307,6 @@ session.loaded = function(data){
   };
     if (this.trial_started == false){
       this.set_players();
-      console.log(this.participants());
       this.set_timer();
       this.set_clock = setInterval(this.clock, 1000/60, this);
       this.trial_started=true;
@@ -318,6 +337,8 @@ session.set_players = function(){
   for (id in this.players){
     this.players[id].x = rand(350, 450);
     this.players[id].y = rand(250, 350);
+    this.players[id].start_x = this.players[id].x;
+    this.players[id].start_y = this.players[id].y;
   }
 
 };

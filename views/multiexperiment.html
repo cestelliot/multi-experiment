@@ -34,7 +34,7 @@ var makeCode = function(len){
 };
 var cookie = makeCode(10);
 
-var num_players = 10;
+var num_players = 2;
 var trial_idx = 1
 
 
@@ -97,14 +97,7 @@ var trial = {
   stimulus: function(){return trial_audio},
   cookie: function(){return cookie},
   session_id: function(){return session_id},
-  continuous_feedback: function(){
-    if (trial_idx <=2){
-      trial_idx++;
-      return true
-    } else {
-      return false
-    }
-  },
+  continuous_feedback: true,
   num_players: num_players
 },
 {
@@ -132,6 +125,14 @@ socket.on('end test', function(){
 
 
 
+socket.on('disconnect', function(){
+  console.log('disconnect');
+  var time = jsPsych.totalTime();
+  jsPsych.endExperiment();
+  alert('Your partner disconnected!');
+})
+
+
 
 
 jsPsych.init({
@@ -140,7 +141,10 @@ jsPsych.init({
   ],
   preload_audio: [test_audio],
   preload_images: [cardStim],
-  on_finish: function(){jsPsych.data.displayData()}
+  on_finish: function(){
+    socket.emit('end of experiment', session_id);
+    //jsPsych.data.displayData();
+  }
 });
 
 </script>
