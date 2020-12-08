@@ -33,3 +33,8 @@ app.set('view engine', 'html');
 app.get('/', function(request, response){
   response.render('multiexperiment.html');
 });
+
+//for testing the training
+app.get('/training', function(request, response){
+  response.render('training-working.html');
+})

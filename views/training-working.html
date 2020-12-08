@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Multiplayer Experiment</title>
+    <script src='jspsych/jspsych.js'></script>
+    <script src="socket.io/socket.io.js"></script>
+    <script src="jspsych/plugins/jspsych-html-keyboard-response.js"></script>
+    <script src="jspsych/plugins/jspsych-external-html.js"></script>
+    <script src="jspsych/plugins/jspsych-multi-training.js"></script>
+    <script src="node_modules/jquery/dist/jquery.js"></script>
+    <link href="jspsych/css/jspsych.css" rel="stylesheet" type="text/css"></link>
+  </head>
+  <body></body>
+
+<script>
+
+var shuffle = function (array) {
+
+	var currentIndex = array.length;
+	var temporaryValue, randomIndex;
+
+	// While there remain elements to shuffle...
+	while (0 !== currentIndex) {
+		// Pick a remaining element...
+		randomIndex = Math.floor(Math.random() * currentIndex);
+		currentIndex -= 1;
+
+		// And swap it with the current element.
+		temporaryValue = array[currentIndex];
+		array[currentIndex] = array[randomIndex];
+		array[randomIndex] = temporaryValue;
+	}
+
+	return array;
+
+};
+
+var timeline = [];
+var test_audio = ["stimuli/1.wav", "stimuli/2.wav", "stimuli/3.wav", "stimuli/4.wav",
+                "stimuli/5.wav", "stimuli/6.wav", "stimuli/7.wav", "stimuli/8.wav",
+                "stimuli/9.wav", "stimuli/10.wav", "stimuli/11.wav", "stimuli/12.wav",
+                "stimuli/13.wav", "stimuli/14.wav", "stimuli/15.wav", "stimuli/16.wav"];
+
+var cardStim = ["stimuli/1001.jpg", "stimuli/2001.jpg", "stimuli/3001.jpg", "stimuli/4001.jpg"]
+var trial_audio;
+
+//this'll be sent by the server in the full version
+var cardStim = shuffle(cardStim);
+var pairings = [{audio: test_audio[0], image: cardStim[0]},
+                {audio: test_audio[3], image: cardStim[1]},
+                {audio: test_audio[12], image:cardStim[2]},
+                {audio: test_audio[15], image:cardStim[3]}]
+
+//create a unique user id to navigate around small disconnects + html changes
+var makeCode = function(len){
+    var text = "";
+    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYabcdefghijklmnopqrstuvwxy0123456789";
+    for( var i=0; i < len; i++ ){
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+    }
+    return text;
+};
+var cookie = makeCode(10);
+
+//random number generation
+function rand(min, max) {
+  let randomNum = Math.random() * (max - min) + min;
+  return Math.floor(randomNum);
+};
+
+
+var start = {
+  type: 'html-keyboard-response',
+  stimulus: '<p>This is the training.</p>'+
+            '<p>Press space to begin.</p>',
+  choices: [32]
+};
+
+
+var chosen;
+var correct;
+var training_tl = {
+  timeline: [{
+      type: 'multi-training',
+      images: cardStim,
+      stimulus: jsPsych.timelineVariable('audio'),
+      on_finish: function(data){
+        chosen = data.image_choice;
+        data.correct = jsPsych.timelineVariable('image', true);
+        cardStim = shuffle(cardStim);
+      }
+   },
+   {
+    type: 'html-keyboard-response',
+    stimulus: function(){
+      var stim;
+      if (chosen!='No choice'){
+        stim = '<p>You chose:<img src='+chosen+'></p>'
+      } else {
+        stim = 'You did not choose an image.'
+      }
+      stim = stim+'<p>The correct image was:<img src='+jsPsych.timelineVariable('image', true)+'></p>'
+      return stim
+    },
+    trial_duration: 3000
+  }
+],
+timeline_variables: pairings,
+randomize_order: true
+}
+
+
+
+
+
+jsPsych.init({
+  timeline:[
+    start, training_tl
+  ],
+  preload_audio: [test_audio],
+  preload_images: [cardStim],
+  on_finish: function(){
+    jsPsych.data.displayData();
+  }
+});
+
+</script>
+</html>
