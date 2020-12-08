@@ -66,6 +66,7 @@ io.on('connection', function(socket){
     io.to(session.id).emit('images', session.cardStim);
     io.to(session.id).emit('audio', session.test_audio[0]);
     clearInterval(session.set_clock);
+    io.to(session.id).emit('player connect', session.participants());
 
 
   });
@@ -75,6 +76,7 @@ io.on('connection', function(socket){
   socket.on('loaded', function(data){
       socket.join(data.session_id);
       sessions[data.session_id].loaded(data);
+
       });
 
 

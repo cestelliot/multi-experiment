@@ -34,7 +34,9 @@ var makeCode = function(len){
 };
 var cookie = makeCode(10);
 
-var num_players = 2;
+
+
+var num_players = 10;
 var trial_idx = 1
 
 
@@ -49,6 +51,11 @@ var start = {
   }
 };
 
+var num_connected = 1;
+socket.on('player connect', function(data){
+  num_connected = data;
+});
+
 
 var room_full = false;
 socket.on('room full', function(){
@@ -56,9 +63,10 @@ socket.on('room full', function(){
 });
 var client_join = {
   type: 'html-keyboard-response',
-  stimulus: 'Please wait while we find other players.',
+  stimulus: function(){return '<p>Please wait while we find other players.</p>'+
+            '<p>'+num_connected+ '/'+num_players+' connected.</p>'},
   response_ends_trial: false,
-  trial_duration: 500
+  trial_duration: 200
 };
 var client_join_loop = {
   timeline: [client_join],
@@ -129,7 +137,7 @@ socket.on('disconnect', function(){
   console.log('disconnect');
   var time = jsPsych.totalTime();
   jsPsych.endExperiment();
-  alert('Your partner disconnected!');
+//  alert('Your partner disconnected!');
 })
 
 
