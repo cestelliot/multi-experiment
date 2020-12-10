@@ -2,7 +2,7 @@
 //modules
 var express = require('express');
 var ejs = require('ejs');
-
+var body_parser = require('body-parser');
 
 //start the app
 var app = express();
@@ -27,6 +27,7 @@ app.use('/node_modules', express.static(__dirname+'/node_modules'));
 app.set('views', __dirname + '/views');
 app.engine('html', ejs.renderFile);
 app.set('view engine', 'html');
+app.use(body_parser.json());
 
 
 //direct participants to the experiment
@@ -37,4 +38,18 @@ app.get('/', function(request, response){
 //for testing the training
 app.get('/training', function(request, response){
   response.render('training-working.html');
-})
+});
+
+//data treatment
+app.post('/experiment-data', function(request, response) {
+    console.log(request.body);
+    response.end();
+});
+
+//show a finish page for a completion and an interrupt due to disconnection
+app.get('/disconnect', function(request, response){
+  response.render('disconnect.html');
+});
+app.get('/finish', function(request, response){
+  response.render('finish.html');
+});
