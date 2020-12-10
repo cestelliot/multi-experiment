@@ -43,7 +43,8 @@ var trial_idx = 1;
 
 var start = {
   type: 'html-keyboard-response',
-  stimulus: '<p>You will hear a word, please use the arrow keys to move to the image that you think corresponds to the word.</p>'+
+  stimulus: '<p>You will hear a word, please choose the image that you think corresponds to the word.</p>'+
+            '<p>You can use the arrow keys (<img src="stimuli/arrowKeys.png", width=100 height=50>) to move </p>'+
             '<p>Press space to find a partner;</p>',
   choices: [32],
   on_finish: function(){
