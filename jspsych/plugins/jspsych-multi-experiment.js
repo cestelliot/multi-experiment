@@ -142,32 +142,32 @@ jsPsych.plugins["multi-experiment"] = (function() {
     };
     function keydown(event){
       switch(event.keyCode){
-        case 37:
+        case 37 || 123:
           movement.left = true;
           break;
-        case 38:
+        case 38 || 126:
           movement.up = true;
           break;
-        case 39:
+        case 39 || 124:
           movement.right = true;
           break;
-        case 40:
+        case 40 || 125:
           movement.down = true;
           break;
       }
     };
     function keyup(event){
       switch(event.keyCode){
-        case 37:
+        case 37 || 123:
           movement.left = false;
           break;
-        case 38:
+        case 38 || 126:
           movement.up = false;
           break;
-        case 39:
+        case 39 || 124:
           movement.right = false;
           break;
-        case 40:
+        case 40 || 125:
           movement.down = false;
           break;
       }

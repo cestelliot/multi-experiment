@@ -3,6 +3,7 @@
 var express = require('express');
 var ejs = require('ejs');
 var body_parser = require('body-parser');
+var mongoose = require('mongoose');
 
 //start the app
 var app = express();
@@ -18,6 +19,17 @@ module.exports = {
   app: app,
   io: io
 };
+
+//mongoose data saving
+var emptySchema = new mongoose.Schema({}, {strict: false});
+var Entry = mongoose.model('Entry', emptySchema);
+mongoose.connect(process.env.MONGODB_URI);
+var db = mongoose.connection;
+db.on('error', console.error.bind(console, 'connection error'));
+db.once('open', function callback(){
+  console.log('database opened')
+});
+
 
 //static middleware
 const session = require(__dirname+'/controller/session.js');
@@ -42,7 +54,9 @@ app.get('/training', function(request, response){
 
 //data treatment
 app.post('/experiment-data', function(request, response) {
-    console.log(request.body);
+    Entry.create({
+      'data': request.body
+    });
     response.end();
 });
 
