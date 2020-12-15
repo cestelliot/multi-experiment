@@ -310,7 +310,7 @@ session.loaded = function(data){
     if (this.trial_started == false){
       this.set_players();
       this.set_timer();
-      this.set_clock = setInterval(this.clock, 1000/60, this);
+      this.set_clock = setInterval(this.clock, 1000/30, this);
       this.trial_started=true;
       };
 }

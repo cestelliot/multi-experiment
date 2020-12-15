@@ -177,7 +177,7 @@ jsPsych.plugins["multi-experiment"] = (function() {
 
     var movingInterval = setInterval(function(){
       socket.emit('movement', {movement: movement, session_id:trial.session_id, socket_id:socket.id});
-    }, 1000/60);
+    }, 1000/30);
 
 
 
@@ -211,7 +211,9 @@ jsPsych.plugins["multi-experiment"] = (function() {
           } else {
             var image_choice = 'No choice'
           };
-          trial_data[id] = {
+          trial_data = {
+            "session": trial.session_id,
+            "player" = trial.cookie, 
             "stimulus": trial.stimulus,
             "x_trajectory": trajectory.x,
             "y_trajectory": trajectory.y,
