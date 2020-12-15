@@ -213,7 +213,7 @@ jsPsych.plugins["multi-experiment"] = (function() {
           };
           trial_data = {
             "session": trial.session_id,
-            "player" = trial.cookie, 
+            "player": trial.cookie, 
             "stimulus": trial.stimulus,
             "x_trajectory": trajectory.x,
             "y_trajectory": trajectory.y,
