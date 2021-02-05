@@ -10,7 +10,7 @@
     <script src="node_modules/jquery/dist/jquery.js"></script>
     <link href="jspsych/css/jspsych.css" rel="stylesheet" type="text/css"></link>
   </head>
-  <body></body>
+  <body>  </body>
 
 <script>
 var socket = io();
@@ -160,12 +160,13 @@ jsPsych.init({
       contentType: 'application/json',
       timeout: 1000,
       success: function(){
-        console.log('success')
+        console.log('success');
         if (disconnected == false){
           window.location.href = 'finish';
         } else {
           window.location.href = 'disconnect'
-        }
+        };
+        socket.emit('end of experiment', session_id)
       },
       error: function(){
         alert('Your data was not saved')

@@ -213,7 +213,7 @@ jsPsych.plugins["multi-experiment"] = (function() {
           };
           trial_data = {
             "session": trial.session_id,
-            "player": trial.cookie, 
+            "player": trial.cookie,
             "stimulus": trial.stimulus,
             "x_trajectory": trajectory.x,
             "y_trajectory": trajectory.y,
@@ -247,7 +247,7 @@ jsPsych.plugins["multi-experiment"] = (function() {
       contextfg.clearRect(0, 0, parseInt(trial.canvas_width), parseInt(trial.canvas_height));
       for (var id in players.players){
         //first check if we want participants to be able to see what other people are doing
-        if (trial.continuous_feedback == true || ticks >= 240){
+        if (trial.continuous_feedback == true || ticks >= 120){
           let player = players.players[id];
           //push the trajectories to a storage for data, make the player blue for themselves
           if (id == trial.cookie){

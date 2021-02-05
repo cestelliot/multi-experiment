@@ -119,6 +119,10 @@ jsPsych.plugins["multi-training"] = (function() {
 
 
     //movement
+    function rand(min, max) {
+      let randomNum = Math.random() * (max - min) + min;
+      return Math.floor(randomNum);
+    };
 
     var player = {x: rand(350, 450), y: rand(250, 350)};
     var movement = {

@@ -72,13 +72,24 @@ io.on('connection', function(socket){
   });
 
 
-//called when each round of the trial loads
+//called when each round of the trial loads - this joins the plugin sockets to the server as well
   socket.on('loaded', function(data){
       socket.join(data.session_id);
       sessions[data.session_id].loaded(data);
 
       });
 
+
+//called when players have finished training and want to begin testing
+socket.on('want to start', function(data){
+  sessions[data].ready_for_test++;
+  io.to(data).emit('ready for test', sessions[data].ready_for_test);
+  console.log(sessions[data].ready_for_test);
+  console.log(sessions[data].total_participants);
+  if (sessions[data].ready_for_test == sessions[data].total_participants){
+    io.to(data).emit('begin test')
+  }
+})
 
 
 
@@ -142,12 +153,9 @@ io.on('connection', function(socket){
 
   //destroy the room at the end of the experiment
   socket.on('end of experiment', function(data){
-    setTimeout(destroy_session, 3e4, data);
+    clearInterval(sessions[data].set_clock)
     console.log(sessions);
   });
-
-
-
 
 
 });
@@ -193,6 +201,7 @@ function create_session(experiment_id, total_participants){
   session.cardStim = shuffle(cardStim);
   session.trial_num = 0;
   session.total_trials = 10;
+  session.ready_for_test = 0;
 
 
 
@@ -320,7 +329,7 @@ session.loaded = function(data){
 
 //set the timer at the start of the trial
    session.set_timer = function(){
-     this.trial_limit = setTimeout(this.end_trial, 5e3, this);
+     this.trial_limit = setTimeout(this.end_trial, 6e3, this);
      console.log('timer set');
    };
 
