@@ -87,7 +87,7 @@ socket.on('want to start', function(data){
   console.log(sessions[data].ready_for_test);
   console.log(sessions[data].total_participants);
   if (sessions[data].ready_for_test == sessions[data].total_participants){
-    io.to(data).emit('begin test')
+    io.to(data).emit('begin test', sessions[data].cardStim)
   }
 })
 
@@ -95,39 +95,39 @@ socket.on('want to start', function(data){
 
 //update the movement of players and keep them in bounds
   socket.on('movement', function(data){
-    let player = {};
-    for (cookie in sessions[data.session_id].players){
-      if (sessions[data.session_id].players[cookie].socketID == data.socket_id){
-        player = sessions[data.session_id].players[cookie];
-      }
-    };
-    if(data.movement.left){
-      player.x -= 2;
-      if (player.x<0){
-        player.x=0
+    if (typeof sessions[data.session_id] !== 'undefined'){
+      let player = {};
+      for (cookie in sessions[data.session_id].players){
+        if (sessions[data.session_id].players[cookie].socketID == data.socket_id){
+          player = sessions[data.session_id].players[cookie];
+        }
       };
-    };
-    if(data.movement.up){
-      player.y -= 2;
-      if (player.y < 0){
-        player.y=0
+      if(data.movement.left){
+        player.x -= 2;
+        if (player.x<0){
+          player.x=0
+        };
       };
-    };
-    if(data.movement.right){
-      player.x += 2;
-      if (player.x>800){
-        player.x=800
+      if(data.movement.up){
+        player.y -= 2;
+        if (player.y < 0){
+          player.y=0
+        };
       };
-    };
-    if(data.movement.down){
-      player.y += 2;
-      if (player.y>600){
-        player.y=600
+      if(data.movement.right){
+        player.x += 2;
+        if (player.x>800){
+          player.x=800
+        };
       };
-    };
+      if(data.movement.down){
+        player.y += 2;
+        if (player.y>600){
+          player.y=600
+        };
+      };
 
-
-
+    }
   });
 
 
@@ -153,8 +153,9 @@ socket.on('want to start', function(data){
 
   //destroy the room at the end of the experiment
   socket.on('end of experiment', function(data){
-    clearInterval(sessions[data].set_clock)
-    console.log(sessions);
+    clearInterval(sessions[data].set_clock);
+    destroy_session(data);
+    console.log('experiment ended');
   });
 
 
@@ -200,7 +201,7 @@ function create_session(experiment_id, total_participants){
   session.test_audio = shuffle(test_audio);
   session.cardStim = shuffle(cardStim);
   session.trial_num = 0;
-  session.total_trials = 10;
+  session.total_trials = 16;
   session.ready_for_test = 0;
 
 
@@ -252,7 +253,9 @@ function create_session(experiment_id, total_participants){
   session.leave = function(client) {
     console.log('leave');
     io.to(this.id).emit('disconnect');
-    console.log(this.participants())
+    console.log(this.participants());
+    clearInterval(this.set_clock);
+    clearTimeout(this.trial_limit);
 };
 
 
@@ -263,6 +266,7 @@ function create_session(experiment_id, total_participants){
     console.log('disconnect');
     io.to(this.id).emit('disconnect');
     clearInterval(this.set_clock);
+    clearTimeout(this.trial_limit);
   };
 
 

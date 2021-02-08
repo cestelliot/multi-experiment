@@ -184,11 +184,6 @@ jsPsych.plugins["multi-experiment"] = (function() {
 
 
 
-
-
-    // data saving
-
-
     // end trial
     socket.on('end_trial', function(players){
       console.log('trial is over');
@@ -280,18 +275,6 @@ jsPsych.plugins["multi-experiment"] = (function() {
     });
 
 
-    //when someone disconnects stop most of the process
-    socket.on('disconnect', function(){
-      clearInterval(movingInterval);
-      document.removeEventListener('keydown', keydown);
-      document.removeEventListener('keyup', keyup);
-      socket.removeEventListener('state');
-      socket.removeEventListener('end_trial');
-      contextfg.clearRect(0, 0, parseInt(trial.canvas_width), parseInt(trial.canvas_height));
-      $('canvas').detach();
-      display_element.innerHTML = '';
-      jsPsych.finishTrial();
-    })
 
 
   };

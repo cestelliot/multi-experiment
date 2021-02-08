@@ -58,6 +58,7 @@ var makeCode = function(len){
 };
 var cookie = makeCode(10);
 
+var needs_connection = false;
 
 
 //initial screen explaining experiment
@@ -307,7 +308,8 @@ socket.on('player connect', function(data){
 
 var room_full = false;
 socket.on('room full', function(){
-  room_full = true
+  needs_connection = true;
+  room_full = true;
 });
 var client_join = {
   type: 'html-keyboard-response',
@@ -387,7 +389,7 @@ var correct;
 var training = {
   timeline: [{
       type: 'multi-training',
-      images: cardStim,
+      images: function(){return cardStim},
       stimulus: jsPsych.timelineVariable('audio'),
       on_finish: function(data){
         chosen = data.image_choice;
@@ -413,7 +415,7 @@ var training = {
 ],
 timeline_variables: cardMap,
 randomize_order: true,
-repetitions: 5
+repetitions: 2
 };
 
 
@@ -436,8 +438,9 @@ socket.on('ready for test', function(data){
 });
 
 var room_ready = false;
-socket.on('begin test', function(){
+socket.on('begin test', function(data){
   console.log('begin test');
+  cardStim = data;
   room_ready = true
 });
 var test_join = {
@@ -489,16 +492,55 @@ var test_loop = {
   }
 };
 socket.on('end test', function(){
-  end_test = true
+  needs_connection = false;
+  end_test = true;
 });
+
+//post test to see if this has had a lasting effect
+var post_test_intro = {
+  type: 'html-keyboard-response',
+  stimulus: "Now we're going to do the same thing again but you can't see the other person.",
+  choices: [32]
+}
+
+var post_test = {
+  timeline: [{
+  type: 'multi-training',
+  images: function (){return jsPsych.randomization.shuffle(cardStim)},
+  stimulus: jsPsych.timelineVariable('stimulus')
+  },
+  {
+    type: 'html-keyboard-response',
+    stimulus: 'Please wait',
+    response_ends_trial: false,
+    trial_duration: 2000
+  }
+],
+  timeline_variables: [
+    {stimulus: test_audio[0]}, {stimulus: test_audio[1]}, {stimulus: test_audio[2]}, {stimulus: test_audio[3]},
+    {stimulus: test_audio[4]}, {stimulus: test_audio[5]}, {stimulus: test_audio[6]}, {stimulus: test_audio[7]},
+    {stimulus: test_audio[8]}, {stimulus: test_audio[9]}, {stimulus: test_audio[10]}, {stimulus: test_audio[11]},
+    {stimulus: test_audio[12]}, {stimulus: test_audio[13]}, {stimulus: test_audio[14]}, {stimulus: test_audio[15]}
+  ],
+  randomize_order: true
+};
+
+var ending = {
+  type: 'html-keyboard-response',
+  stimulus: "That's the end of the experiment. Thank you and please press space to send your data.",
+  chocies: [32]
+}
+
 
 var disconnected = false;
 socket.on('disconnect', function(){
   console.log('disconnect');
-  disconnected = true;
-  var time = jsPsych.totalTime();
-  jsPsych.endExperiment();
-//  alert('Your partner disconnected!');
+  if(needs_connection == true){
+    disconnected = true;
+    var time = jsPsych.totalTime();
+    jsPsych.endExperiment();
+  //  alert('Your partner disconnected!');
+  }
 })
 
 //initialise experiment
@@ -508,14 +550,14 @@ jsPsych.init({
     //everything from here requires a connection to a group
     connect, client_join_loop, familiarisation_start, familiarisation,
     training_start, training,
-    testing_start, test_join_loop, test_loop
+    testing_start, test_join_loop, test_loop,
+    post_test_intro, post_test, ending
   ],
   preload_audio: [test_audio, audioTest, calib],
   preload_images: [cardStim],
   on_finish: function(){
-    jsPsych.data.displayData();
     //when you put this back in remember that the mongo thing in app needs to be changed back
-    /*$.ajax({
+    $.ajax({
       type: 'POST',
       url: '/experiment-data',
       data: jsPsych.data.get().json(),
@@ -534,7 +576,7 @@ jsPsych.init({
         alert('Your data was not saved')
         window.location.href = '/'
       }
-    })*/
+    })
   }
 });
 
