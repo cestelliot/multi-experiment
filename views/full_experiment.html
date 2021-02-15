@@ -27,7 +27,6 @@
 
 //setting up variables that will be used throughout the experiment
 var num_players = 2;
-var trial_idx = 1;
 
 var socket = io();
 var timeline = [];
@@ -58,6 +57,9 @@ var makeCode = function(len){
 };
 var cookie = makeCode(10);
 
+
+
+//flag which is set to true when a disconnect will actually cause problems in the continuation of the experiment
 var needs_connection = false;
 
 
@@ -359,7 +361,10 @@ var familiarisation_start = {
   type: 'html-keyboard-response',
   stimulus: '<p>This is the familiarisation.</p>'+
             '<p>Press space to begin.</p>',
-  choices: [32]
+  choices: [32],
+  on_finish: function(data){
+    data.session = session_id
+  }
 };
 
 var familiarisation = {timeline: [{
@@ -383,6 +388,7 @@ var training_start = {
             '<p>Press space to begin.</p>',
   choices: [32]
 };
+
 
 var chosen;
 var correct;
@@ -462,6 +468,10 @@ var test_join_loop = {
 };
 
 
+var trials_done = 0;
+var num_agreed = 0;
+socket.on('agreement', function(){num_agreed++})
+
 var testing = {
   timeline:[{
   type: 'multi-experiment',
@@ -470,7 +480,10 @@ var testing = {
   cookie: function(){return cookie},
   session_id: function(){return session_id},
   continuous_feedback: true,
-  num_players: num_players
+  num_players: num_players,
+  on_finish: function(){
+    trials_done++
+  }
 },
 {
   type: 'html-keyboard-response',
@@ -480,9 +493,30 @@ var testing = {
 }]
 };
 
+var display_score = {
+  type: 'html-keyboard-response',
+  stimulus: function(){return 'You agreed with your group on '+num_agreed+'/16 trials.'},
+  response_ends_trial: false,
+  trial_duration: 4000,
+  on_finish: function(){
+    num_agreed = 0
+  }
+};
+
+var display_conditional = {
+  timeline: [display_score],
+  conditional_function: function(){
+    if (trials_done % 16 == 0){
+      return true;
+    } else {
+      return false;
+    }
+  }
+}
+
 var end_test = false;
 var test_loop = {
-  timeline: [testing],
+  timeline: [testing, display_conditional],
   loop_function: function(){
     if (end_test == false){
       return true

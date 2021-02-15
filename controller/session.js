@@ -131,6 +131,18 @@ socket.on('want to start', function(data){
   });
 
 
+  //check if the images chosen are the same for participants
+  socket.on('image choice', function(data){
+    sessions[data.session_id].image_picks.push(data.image_choice);
+    if (sessions[data.session_id].image_picks.length == sessions[data.session_id].total_participants && sessions[data.session_id].image_picks.every(v => v === sessions[data.session_id].image_picks[0])){
+      if(sessions[data.session_id].image_picks[0] != 'No choice'){
+        io.to(data.session_id).emit('agreement')
+      }
+    }
+
+  });
+
+
 
 
   // disconnect is for automatic disconnects like closing the browser window
@@ -203,6 +215,7 @@ function create_session(experiment_id, total_participants){
   session.trial_num = 0;
   session.total_trials = 16;
   session.ready_for_test = 0;
+  session.image_picks = [];
 
 
 
@@ -276,6 +289,7 @@ function create_session(experiment_id, total_participants){
 //called when the timer runs out to end the trial
 session.end_trial = function(session){
   session.trial_started = false;
+  session.image_picks = [];
   clearInterval(session.set_clock);
   //shuffle the images and send them to the clients
     session.cardStim = shuffle(session.cardStim);
@@ -323,7 +337,7 @@ session.loaded = function(data){
     if (this.trial_started == false){
       this.set_players();
       this.set_timer();
-      this.set_clock = setInterval(this.clock, 1000/30, this);
+      this.set_clock = setInterval(this.clock, 1000/60, this);
       this.trial_started=true;
       };
 }

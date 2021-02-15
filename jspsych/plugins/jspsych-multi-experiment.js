@@ -206,6 +206,7 @@ jsPsych.plugins["multi-experiment"] = (function() {
           } else {
             var image_choice = 'No choice'
           };
+          socket.emit('image choice', {session_id: trial.session_id, image_choice: image_choice});
           trial_data = {
             "session": trial.session_id,
             "player": trial.cookie,
