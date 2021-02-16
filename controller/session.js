@@ -86,7 +86,7 @@ socket.on('want to start', function(data){
   io.to(data).emit('ready for test', sessions[data].ready_for_test);
   console.log(sessions[data].ready_for_test);
   console.log(sessions[data].total_participants);
-  if (sessions[data].ready_for_test == sessions[data].total_participants){
+  if (sessions[data].ready_for_test == (sessions[data].total_participants-sessions[data].players_disconnected)){
     io.to(data).emit('begin test', sessions[data].cardStim)
   }
 })
@@ -149,7 +149,7 @@ socket.on('want to start', function(data){
   socket.on('disconnect', function () {
     if(typeof socket.session !== 'undefined'){
       console.log('disconnect');
-      socket.session.leave();
+      socket.session.leave(socket.cookie);
     };
   });
 
@@ -165,7 +165,6 @@ socket.on('want to start', function(data){
 
   //destroy the room at the end of the experiment
   socket.on('end of experiment', function(data){
-    clearInterval(sessions[data].set_clock);
     destroy_session(data);
     console.log('experiment ended');
   });
@@ -213,9 +212,10 @@ function create_session(experiment_id, total_participants){
   session.test_audio = shuffle(test_audio);
   session.cardStim = shuffle(cardStim);
   session.trial_num = 0;
-  session.total_trials = 16;
+  session.total_trials = 32;
   session.ready_for_test = 0;
   session.image_picks = [];
+  session.players_disconnected = 0;
 
 
 
@@ -263,12 +263,16 @@ function create_session(experiment_id, total_participants){
 
 
   // called if someone leaves
-  session.leave = function(client) {
+  session.leave = function(cookie) {
     console.log('leave');
-    io.to(this.id).emit('disconnect');
-    console.log(this.participants());
-    clearInterval(this.set_clock);
-    clearTimeout(this.trial_limit);
+    delete session.players[cookie];
+    if (this.started==false){
+      io.to(this.id).emit('disconnect before start', this.participants())
+    } else {
+      io.to(this.id).emit('disconnect');
+      this.players_disconnected++;
+    }
+
 };
 
 

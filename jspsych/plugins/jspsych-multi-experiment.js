@@ -177,7 +177,7 @@ jsPsych.plugins["multi-experiment"] = (function() {
 
     var movingInterval = setInterval(function(){
       socket.emit('movement', {movement: movement, session_id:trial.session_id, socket_id:socket.id});
-    }, 1000/30);
+    }, 1000/60);
 
 
 

@@ -26,7 +26,9 @@
 <script>
 
 //setting up variables that will be used throughout the experiment
-var num_players = 2;
+var num_players = 4;
+//how many players can we lose before needing to call off the experiment
+var able_to_lose = num_players/2;
 
 var socket = io();
 var timeline = [];
@@ -309,14 +311,20 @@ socket.on('player connect', function(data){
 
 
 var room_full = false;
+
 socket.on('room full', function(){
   needs_connection = true;
   room_full = true;
 });
+
+socket.on('disconnect before start', function(data){
+  num_connected = data
+});
+
 var client_join = {
   type: 'html-keyboard-response',
   stimulus: function(){return '<p>Please wait while we find other players.</p>'+
-            '<p>'+num_connected+ '/'+num_players+' connected.</p>'},
+            '<p>'+num_connected+ '/'+(num_players-players_disconnected)+' connected.</p>'},
   response_ends_trial: false,
   trial_duration: 200
 };
@@ -336,7 +344,7 @@ var client_join_loop = {
 var session_id;
 socket.on('session id', function(data){
   session_id = data;
-  console.log(session_id)
+  console.log(session_id);
 });
 
 
@@ -452,7 +460,7 @@ socket.on('begin test', function(data){
 var test_join = {
   type: 'html-keyboard-response',
   stimulus: function(){return '<p>Please wait for the other people in your group to catch up.</p>'+
-            '<p>'+num_ready+ '/'+num_players+' connected.</p>'},
+            '<p>'+num_ready+ '/'+(num_players-players_disconnected)+' connected.</p>'},
   response_ends_trial: false,
   trial_duration: 200
 };
@@ -470,7 +478,7 @@ var test_join_loop = {
 
 var trials_done = 0;
 var num_agreed = 0;
-socket.on('agreement', function(){num_agreed++})
+socket.on('agreement', function(){num_agreed++});
 
 var testing = {
   timeline:[{
@@ -493,6 +501,8 @@ var testing = {
 }]
 };
 
+
+//after every 16 trials display information about how much participants have agreed
 var display_score = {
   type: 'html-keyboard-response',
   stimulus: function(){return 'You agreed with your group on '+num_agreed+'/16 trials.'},
@@ -514,6 +524,8 @@ var display_conditional = {
   }
 }
 
+
+//the loop that ends when the server says the prescribed number of trials hav e been completed
 var end_test = false;
 var test_loop = {
   timeline: [testing, display_conditional],
@@ -533,9 +545,9 @@ socket.on('end test', function(){
 //post test to see if this has had a lasting effect
 var post_test_intro = {
   type: 'html-keyboard-response',
-  stimulus: "Now we're going to do the same thing again but you can't see the other person.",
+  stimulus: "Now we're going to do the same thing again but it's just you alone again.",
   choices: [32]
-}
+};
 
 var post_test = {
   timeline: [{
@@ -567,9 +579,10 @@ var ending = {
 
 
 var disconnected = false;
+var players_disconnected = 0;
 socket.on('disconnect', function(){
-  console.log('disconnect');
-  if(needs_connection == true){
+  players_disconnected++
+  if(needs_connection == true && players_disconnected >= able_to_lose){
     disconnected = true;
     var time = jsPsych.totalTime();
     jsPsych.endExperiment();
@@ -585,6 +598,7 @@ jsPsych.init({
     connect, client_join_loop, familiarisation_start, familiarisation,
     training_start, training,
     testing_start, test_join_loop, test_loop,
+    //connection no longer required
     post_test_intro, post_test, ending
   ],
   preload_audio: [test_audio, audioTest, calib],
@@ -608,7 +622,7 @@ jsPsych.init({
       },
       error: function(){
         alert('Your data was not saved')
-        window.location.href = '/'
+        window.location.href = 'finish';
       }
     })
   }
