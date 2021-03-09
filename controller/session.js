@@ -59,8 +59,9 @@ io.on('connection', function(socket){
 //called when the player finishes the 'start' trial, putting them in a session to wait for others
   socket.on('new player', function(data){
     socket.cookie = data.cookie;
-    var total_players = data.num_players
+    var total_players = data.num_players;
     let session = find_session(experiment_id, total_players, socket);
+    session.total_trials = data.num_test_trials;
     //this is the index.html joining the session
     io.to(session.id).emit('session id', session.id);
     io.to(session.id).emit('images', session.cardStim);

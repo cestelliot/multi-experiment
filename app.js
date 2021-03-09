@@ -49,7 +49,7 @@ app.get('/', function(request, response){
 
 //for testing the training
 app.get('/test', function(request, response){
-  response.render('multiexperiment.html');
+  response.render('short_bugtest.html');
 });
 
 //data treatment
