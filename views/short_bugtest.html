@@ -46,6 +46,7 @@ var audioTestCorrect = [{audio: audioTest[0], correct: 2}, {audio: audioTest[1],
                         {audio: audioTest[3], correct: 1}, {audio: audioTest[4], correct: 0}, {audio: audioTest[5], correct: 0}]
 
 var calib = 'stimuli/noise_calib_stim.wav'
+var arrowKeys = 'stimuli/arrowKeys.png'
 
 var timeline = [];
 
@@ -611,7 +612,7 @@ jsPsych.init({
     post_test_intro, post_test, ending
   ],
   preload_audio: [test_audio, audioTest, calib],
-  preload_images: [cardStim, arrowKeys.png],
+  preload_images: [cardStim, arrowKeys],
   on_finish: function(){
     //when you put this back in remember that the mongo thing in app needs to be changed back
     $.ajax({
