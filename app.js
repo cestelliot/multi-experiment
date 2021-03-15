@@ -39,8 +39,13 @@ app.use('/node_modules', express.static(__dirname+'/node_modules'));
 app.set('views', __dirname + '/views');
 app.engine('html', ejs.renderFile);
 app.set('view engine', 'html');
-app.use(body_parser.json());
 
+//size limits
+app.use(bodyParser.json({ limit: '50mb' }))
+app.use(bodyParser.urlencoded({
+  limit: '50mb',
+  extended: true,
+}))
 
 //direct participants to the experiment
 app.get('/', function(request, response){
