@@ -67,3 +67,6 @@ app.get('/disconnect', function(request, response){
 app.get('/finish', function(request, response){
   response.render('finish.html');
 });
+app.get('/data_fail', function(request, response){
+  response.render('data_fail.html');
+});

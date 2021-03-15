@@ -369,6 +369,7 @@ var cardMap = jsPsych.randomization.shuffle([
 var familiarisation_start = {
   type: 'html-keyboard-response',
   stimulus: '<p>This is the familiarisation.</p>'+
+            '<p>You will hear a sound and see the associated image. Once you remember the image, press the space bar.' +
             '<p>Press space to begin.</p>',
   choices: [32],
   on_finish: function(data){
@@ -394,6 +395,7 @@ var familiarisation = {timeline: [{
 var training_start = {
   type: 'html-keyboard-response',
   stimulus: '<p>This is the training.</p>'+
+            '<p>You will hear one of the words, please move to the image you think corresponds to the sound. You will have 6 seconds to choose an image.</p>' +
             '<p>You can move using the arrow keys <img src="stimuli/arrowKeys.png", width=100 height=50></p>' +
             '<p>Press space to begin.</p>',
   choices: [32]
@@ -425,7 +427,7 @@ var training = {
       stim = stim+'<p>The correct image was:<img src='+jsPsych.timelineVariable('img', true)+'></p>'
       return stim
     },
-    trial_duration: 3000,
+    trial_duration: 4000,
     response_ends_trial: false
   }
 ],
@@ -439,7 +441,9 @@ repetitions: 4
 //might add in a small independent testing phase first but not sure
 var testing_start = {
   type: 'html-keyboard-response',
-  stimulus: 'Now we will do the coordinated testing. Press space to wait for your group.',
+  stimulus: '<p>Now we will do the coordinated testing.</p>' +
+            '<p>This is the same as the previous phase, but you will see other people from your group responding at the same time as you. </p>'
+            '<p>Press space to wait for your group.</p>',
   choices: [32],
   on_finish: function(){
     socket.emit('want to start', session_id)
@@ -507,7 +511,7 @@ var testing = {
 //after every 16 trials display information about how much participants have agreed
 var display_score = {
   type: 'html-keyboard-response',
-  stimulus: function(){return 'You agreed with your group on '+num_agreed+'/16 trials.'},
+  stimulus: function(){return 'You agreed with your group on '+num_agreed+'/16 trials this round.'},
   response_ends_trial: false,
   trial_duration: 4000,
   on_finish: function(){
@@ -547,7 +551,9 @@ socket.on('end test', function(){
 //post test to see if this has had a lasting effect
 var post_test_intro = {
   type: 'html-keyboard-response',
-  stimulus: "Now we're going to do the same thing again but it's just you alone again.",
+  stimulus: "<p>This is the post-test.</p>" +
+            "<p>You won't see any people again, but can still respond in the same way as before </p>" +
+            '<p>Press space to begin. </p>',
   choices: [32]
 };
 
@@ -575,7 +581,8 @@ var post_test = {
 
 var ending = {
   type: 'html-keyboard-response',
-  stimulus: "That's the end of the experiment. Thank you and please press space to send your data.",
+  stimulus: "<p>That's the end of the experiment. Thank you and please press space to send your data.</p>" +
+            '<p>You should be taken to a screen that tells you your data has been sent, if not, please tell me!</p>',
   chocies: [32]
 }
 
@@ -624,7 +631,7 @@ jsPsych.init({
       },
       error: function(){
         alert('Your data was not saved')
-        window.location.href = 'finish';
+        window.location.href = 'data_fail';
       }
     })
   }
