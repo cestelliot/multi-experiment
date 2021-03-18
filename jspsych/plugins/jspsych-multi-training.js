@@ -169,7 +169,7 @@ jsPsych.plugins["multi-training"] = (function() {
 
     //set the movingInterval and the end trial
     var movingInterval = setInterval(move, 1000/60);
-    var trial_limit = setTimeout(end_trial, 6e3);
+    var trial_limit = setTimeout(end_trial, 8e3);
 
 
 

@@ -352,7 +352,7 @@ session.loaded = function(data){
 
 //set the timer at the start of the trial
    session.set_timer = function(){
-     this.trial_limit = setTimeout(this.end_trial, 6e3, this);
+     this.trial_limit = setTimeout(this.end_trial, 8e3, this);
      console.log('timer set');
    };
 
