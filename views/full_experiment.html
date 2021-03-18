@@ -602,6 +602,38 @@ socket.on('disconnect', function(){
   }
 })
 
+
+var saveAttempts = 0;
+var saveTimeout = 2000;
+
+function save(){
+  $.ajax({
+    type: 'POST',
+    url: '/experiment-data',
+    data: jsPsych.data.get().json(),
+    contentType: 'application/json',
+    timeout: saveTimeout,
+    success: function(){
+      console.log('success');
+      if (disconnected == false){
+        window.location.href = 'finish';
+      } else {
+        window.location.href = 'disconnect'
+      };
+      socket.emit('end of experiment', session_id)
+    },
+    error: function(){
+      $('#jspsych-content').html("Please wait a few seconds while we save your responses...")
+      if (saveAttempts < 5) {
+        saveAttempts++;
+        saveTimeout += 500;
+        save();
+      } else {
+        window.location.href = 'data_fail';
+      }
+
+}
+
 //initialise experiment
 jsPsych.init({
   timeline:[
@@ -616,27 +648,7 @@ jsPsych.init({
   preload_audio: [test_audio, audioTest, calib],
   preload_images: [cardStim, stimuli/arrowKeys.png],
   on_finish: function(){
-    //when you put this back in remember that the mongo thing in app needs to be changed back
-    $.ajax({
-      type: 'POST',
-      url: '/experiment-data',
-      data: jsPsych.data.get().json(),
-      contentType: 'application/json',
-      timeout: 1000,
-      success: function(){
-        console.log('success');
-        if (disconnected == false){
-          window.location.href = 'finish';
-        } else {
-          window.location.href = 'disconnect'
-        };
-        socket.emit('end of experiment', session_id)
-      },
-      error: function(){
-        alert('Your data was not saved')
-        window.location.href = 'finish';
-      }
-    })
+    save();
   }
 });
 

@@ -166,7 +166,7 @@ socket.on('want to start', function(data){
 
   //destroy the room at the end of the experiment
   socket.on('end of experiment', function(data){
-    destroy_session(data);
+    setTimeout(destroy_session, 1e6, data);
     console.log('experiment ended');
   });
 
