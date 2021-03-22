@@ -26,8 +26,11 @@
 <script>
 
 //setting up variables that will be used throughout the experiment
-var num_players = 2;
-var num_test_trials = 32;
+var num_players = 4;
+var training_repetitions = 8;
+var num_test_trials = 8*16;
+var post_test_repetitions = 5;
+
 //how many players can we lose before needing to call off the experiment - i think we're only using even numbers so don't need to worry too much about this
 var able_to_lose = num_players/2;
 
@@ -314,7 +317,7 @@ socket.on('player connect', function(data){
 var room_full = false;
 
 socket.on('room full', function(){
-  needs_connection = false;
+  needs_connection = true;
   room_full = true;
 });
 
@@ -441,7 +444,7 @@ var training = {
 ],
 timeline_variables: cardMap,
 randomize_order: true,
-repetitions: 2
+repetitions: training_repetitions
 };
 
 
@@ -581,7 +584,8 @@ var post_test = {
     {stimulus: test_audio[8]}, {stimulus: test_audio[9]}, {stimulus: test_audio[10]}, {stimulus: test_audio[11]},
     {stimulus: test_audio[12]}, {stimulus: test_audio[13]}, {stimulus: test_audio[14]}, {stimulus: test_audio[15]}
   ],
-  randomize_order: true
+  randomize_order: true,
+  repetitions: post_test_repetitions
 };
 
 var ending = {
