@@ -314,7 +314,7 @@ socket.on('player connect', function(data){
 var room_full = false;
 
 socket.on('room full', function(){
-  needs_connection = true;
+  needs_connection = false;
   room_full = true;
 });
 
@@ -557,7 +557,8 @@ socket.on('end test', function(){
 //post test to see if this has had a lasting effect
 var post_test_intro = {
   type: 'html-keyboard-response',
-  stimulus: "Now we're going to do the same thing again but it's just you alone again.",
+  stimulus: "<p>Now we're going to do the same thing again but it's just you alone again.</p>" +
+            "<p>Please press space to begin.</p>",
   choices: [32]
 };
 
