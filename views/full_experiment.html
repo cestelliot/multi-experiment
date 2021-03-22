@@ -369,10 +369,10 @@ var cardMap = jsPsych.randomization.shuffle([
 //just a heads up
 var warning_start = {
   type: 'html-stimulus-response',
-  stimulus: 'We have all the participants and now we will begin the experiment',
+  stimulus: 'We have all the participants and now we will begin the experiment.',
   response_ends_trial: false,
   trial_duration: 5000
-}
+};
 
 
 
@@ -631,8 +631,9 @@ function save(){
       } else {
         window.location.href = 'data_fail';
       }
-
-}
+    }
+  })
+};
 
 //initialise experiment
 jsPsych.init({
