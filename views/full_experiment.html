@@ -34,6 +34,7 @@ var post_test_repetitions = 5;
 //how many players can we lose before needing to call off the experiment - i think we're only using even numbers so don't need to worry too much about this
 var able_to_lose = num_players/2;
 
+//stimuli and stuff needed for connection and running of experiment
 var socket = io();
 var timeline = [];
 var test_audio = ["stimuli/1.wav", "stimuli/2.wav", "stimuli/3.wav", "stimuli/4.wav",
@@ -65,7 +66,8 @@ var cookie = makeCode(10);
 
 
 
-//flag which is set to true when a disconnect will actually cause problems in the continuation of the experiment
+//flag which is set to true when disconnects will actually cause problems in the continuation of the experiment,
+//so we know whether to immediately end the experiment or keep going
 var needs_connection = false;
 
 
@@ -296,7 +298,7 @@ var headphoneCond = {
 }
 
 
-//connect to a partner that has also passed these parts of the experiment
+//connect to group that has also passed initial screening parts of the experiment
 var connect = {
   type: 'html-keyboard-response',
   stimulus: "We will now connect you to a group in order to continue with the experiment, please press the spacebar to be connected",
@@ -308,19 +310,21 @@ var connect = {
 
 
 
+//update the number of people connected clientside
 var num_connected = 1;
 socket.on('player connect', function(data){
   num_connected = data;
 });
 
-
+//when the room is full the server sends an update, the client then knows to begin, and that if too many drop out from now it'll be an issue
 var room_full = false;
-
 socket.on('room full', function(){
   needs_connection = true;
   room_full = true;
 });
 
+//this means people can drop while still loading and other people won't see any weirdness with numbers
+//all actual important stuff to do with this is handled server side
 socket.on('disconnect before start', function(data){
   num_connected = data
 });
@@ -345,6 +349,8 @@ var client_join_loop = {
 
 
 //tell the plugin what session we have joined
+//this is passed as part of the argument of the plugin, since the experiment and plugins end up with different socketIDs
+//with this the plugin can tell the server which session its associated client joined
 var session_id;
 socket.on('session id', function(data){
   session_id = data;
@@ -361,7 +367,7 @@ socket.on('audio', function(data){
 });
 
 
-//familiarisation trials
+//familiarisation trials stimuli
 var cardMap = jsPsych.randomization.shuffle([
 {audio: 'stimuli/1.wav', img: cardStim[0], html: "<img src="+cardStim[0]+">"},
 {audio: 'stimuli/4.wav', img: cardStim[1], html: "<img src="+cardStim[1]+">"},
