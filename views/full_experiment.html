@@ -649,11 +649,11 @@ function save(){
 //initialise experiment
 jsPsych.init({
   timeline:[
-    //welcome, questions, suitableCond1, suitableCond2, suitableCond3, headphoneIntro, headphoneTest, headphoneCond,
+    welcome, questions, suitableCond1, suitableCond2, suitableCond3, headphoneIntro, headphoneTest, headphoneCond,
     //everything from here requires a connection to a group
-    connect, client_join_loop, warning_start, //familiarisation_start, familiarisation,
-    //training_start, training,
-    //testing_start, test_join_loop, test_loop,
+    connect, client_join_loop, warning_start, familiarisation_start, familiarisation,
+    training_start, training,
+    testing_start, test_join_loop, test_loop,
     //connection no longer required
     post_test_intro, post_test, ending
   ],
