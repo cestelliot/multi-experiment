@@ -26,9 +26,9 @@
 <script>
 
 //setting up variables that will be used throughout the experiment
-var num_players = 4;
+var num_players = 2;
 var training_repetitions = 8;
-var num_test_trials = 8*16;
+var num_test_trials = 6*16;
 var post_test_repetitions = 5;
 
 //how many players can we lose before needing to call off the experiment - i think we're only using even numbers so don't need to worry too much about this
@@ -508,7 +508,7 @@ var testing = {
   stimulus: function(){return trial_audio},
   cookie: function(){return cookie},
   session_id: function(){return session_id},
-  continuous_feedback: true,
+  continuous_feedback: false,
   num_players: num_players,
   on_finish: function(){
     trials_done++
@@ -615,7 +615,7 @@ socket.on('disconnect', function(){
 
 
 var saveAttempts = 0;
-var saveTimeout = 2000;
+var saveTimeout = 5000;
 
 function save(){
   $.ajax({
@@ -637,7 +637,7 @@ function save(){
       $('#jspsych-content').html("Please wait a few seconds while we save your responses...")
       if (saveAttempts < 5) {
         saveAttempts++;
-        saveTimeout += 500;
+        saveTimeout += 1000;
         save();
       } else {
         window.location.href = 'data_fail';
