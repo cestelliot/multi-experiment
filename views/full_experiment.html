@@ -262,7 +262,13 @@ choices: ['Continuer']
        num_correct += 1
      }
      console.log(num_correct)
-   }}
+   }},
+   {
+     type: 'html-keyboard-response',
+     stimulus: '',
+     response_ends_trial: false,
+     trial_duration: 500
+   }
  ],
 timeline_variables: [
   {stimulus: audioTestCorrect[0].audio, correct:audioTestCorrect[0].correct},

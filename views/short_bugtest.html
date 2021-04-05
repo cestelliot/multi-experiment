@@ -26,11 +26,15 @@
 <script>
 
 //setting up variables that will be used throughout the experiment
-var num_players = 6;
-var num_test_trials = 16;
+var num_players = 2;
+var training_repetitions = 2;
+var num_test_trials = 2*16;
+var post_test_repetitions = 2;
+
 //how many players can we lose before needing to call off the experiment - i think we're only using even numbers so don't need to worry too much about this
 var able_to_lose = num_players/2;
 
+//stimuli and stuff needed for connection and running of experiment
 var socket = io();
 var timeline = [];
 var test_audio = ["stimuli/1.wav", "stimuli/2.wav", "stimuli/3.wav", "stimuli/4.wav",
@@ -46,7 +50,6 @@ var audioTestCorrect = [{audio: audioTest[0], correct: 2}, {audio: audioTest[1],
                         {audio: audioTest[3], correct: 1}, {audio: audioTest[4], correct: 0}, {audio: audioTest[5], correct: 0}]
 
 var calib = 'stimuli/noise_calib_stim.wav'
-var arrowKeys = 'stimuli/arrowKeys.png'
 
 var timeline = [];
 
@@ -63,7 +66,8 @@ var cookie = makeCode(10);
 
 
 
-//flag which is set to true when a disconnect will actually cause problems in the continuation of the experiment
+//flag which is set to true when disconnects will actually cause problems in the continuation of the experiment,
+//so we know whether to immediately end the experiment or keep going
 var needs_connection = false;
 
 
@@ -294,7 +298,7 @@ var headphoneCond = {
 }
 
 
-//connect to a partner that has also passed these parts of the experiment
+//connect to group that has also passed initial screening parts of the experiment
 var connect = {
   type: 'html-keyboard-response',
   stimulus: "We will now connect you to a group in order to continue with the experiment, please press the spacebar to be connected",
@@ -306,19 +310,21 @@ var connect = {
 
 
 
+//update the number of people connected clientside
 var num_connected = 1;
 socket.on('player connect', function(data){
   num_connected = data;
 });
 
-
+//when the room is full the server sends an update, the client then knows to begin, and that if too many drop out from now it'll be an issue
 var room_full = false;
-
 socket.on('room full', function(){
   needs_connection = true;
   room_full = true;
 });
 
+//this means people can drop while still loading and other people won't see any weirdness with numbers
+//all actual important stuff to do with this is handled server side
 socket.on('disconnect before start', function(data){
   num_connected = data
 });
@@ -343,6 +349,8 @@ var client_join_loop = {
 
 
 //tell the plugin what session we have joined
+//this is passed as part of the argument of the plugin, since the experiment and plugins end up with different socketIDs
+//with this the plugin can tell the server which session its associated client joined
 var session_id;
 socket.on('session id', function(data){
   session_id = data;
@@ -359,7 +367,7 @@ socket.on('audio', function(data){
 });
 
 
-//familiarisation trials
+//familiarisation trials stimuli
 var cardMap = jsPsych.randomization.shuffle([
 {audio: 'stimuli/1.wav', img: cardStim[0], html: "<img src="+cardStim[0]+">"},
 {audio: 'stimuli/4.wav', img: cardStim[1], html: "<img src="+cardStim[1]+">"},
@@ -367,10 +375,19 @@ var cardMap = jsPsych.randomization.shuffle([
 {audio: 'stimuli/16.wav', img: cardStim[3], html: "<img src="+cardStim[3]+">"}
 ]);
 
+//just a heads up
+var warning_start = {
+  type: 'html-keyboard-response',
+  stimulus: 'We have all the participants and now we will begin the experiment.',
+  response_ends_trial: false,
+  trial_duration: 5000
+};
+
+
+
 var familiarisation_start = {
   type: 'html-keyboard-response',
   stimulus: '<p>This is the familiarisation.</p>'+
-            '<p>You will hear a sound and see the associated image. Once you remember the image, press the space bar.' +
             '<p>Press space to begin.</p>',
   choices: [32],
   on_finish: function(data){
@@ -396,7 +413,6 @@ var familiarisation = {timeline: [{
 var training_start = {
   type: 'html-keyboard-response',
   stimulus: '<p>This is the training.</p>'+
-            '<p>You will hear one of the words, please move to the image you think corresponds to the sound. You will have 6 seconds to choose an image.</p>' +
             '<p>You can move using the arrow keys <img src="stimuli/arrowKeys.png", width=100 height=50></p>' +
             '<p>Press space to begin.</p>',
   choices: [32]
@@ -428,13 +444,13 @@ var training = {
       stim = stim+'<p>The correct image was:<img src='+jsPsych.timelineVariable('img', true)+'></p>'
       return stim
     },
-    trial_duration: 4000,
+    trial_duration: 3000,
     response_ends_trial: false
   }
 ],
 timeline_variables: cardMap,
 randomize_order: true,
-repetitions: 4
+repetitions: training_repetitions
 };
 
 
@@ -442,9 +458,7 @@ repetitions: 4
 //might add in a small independent testing phase first but not sure
 var testing_start = {
   type: 'html-keyboard-response',
-  stimulus: '<p>Now we will do the coordinated testing.</p>' +
-            '<p>This is the same as the previous phase, but you will see other people from your group responding at the same time as you. </p>' +
-            '<p>Press space to wait for your group.</p>',
+  stimulus: 'Now we will do the coordinated testing. Press space to wait for your group.',
   choices: [32],
   on_finish: function(){
     socket.emit('want to start', session_id)
@@ -494,7 +508,7 @@ var testing = {
   stimulus: function(){return trial_audio},
   cookie: function(){return cookie},
   session_id: function(){return session_id},
-  continuous_feedback: true,
+  continuous_feedback: false,
   num_players: num_players,
   on_finish: function(){
     trials_done++
@@ -512,7 +526,7 @@ var testing = {
 //after every 16 trials display information about how much participants have agreed
 var display_score = {
   type: 'html-keyboard-response',
-  stimulus: function(){return 'You agreed with your group on '+num_agreed+'/16 trials this round.'},
+  stimulus: function(){return 'You agreed with your group on '+num_agreed+'/16 trials.'},
   response_ends_trial: false,
   trial_duration: 4000,
   on_finish: function(){
@@ -552,9 +566,8 @@ socket.on('end test', function(){
 //post test to see if this has had a lasting effect
 var post_test_intro = {
   type: 'html-keyboard-response',
-  stimulus: "<p>This is the post-test.</p>" +
-            "<p>You won't see any people again, but can still respond in the same way as before </p>" +
-            '<p>Press space to begin. </p>',
+  stimulus: "<p>Now we're going to do the same thing again but it's just you alone again.</p>" +
+            "<p>Please press space to begin.</p>",
   choices: [32]
 };
 
@@ -577,13 +590,13 @@ var post_test = {
     {stimulus: test_audio[8]}, {stimulus: test_audio[9]}, {stimulus: test_audio[10]}, {stimulus: test_audio[11]},
     {stimulus: test_audio[12]}, {stimulus: test_audio[13]}, {stimulus: test_audio[14]}, {stimulus: test_audio[15]}
   ],
-  randomize_order: true
+  randomize_order: true,
+  repetitions: post_test_repetitions
 };
 
 var ending = {
   type: 'html-keyboard-response',
-  stimulus: "<p>That's the end of the experiment. Thank you and please press space to send your data.</p>" +
-            '<p>You should be taken to a screen that tells you your data has been sent, if not, please tell me!</p>',
+  stimulus: "That's the end of the experiment. Thank you and please press space to send your data.",
   chocies: [32]
 }
 
@@ -600,41 +613,54 @@ socket.on('disconnect', function(){
   }
 })
 
+
+var saveAttempts = 0;
+var saveTimeout = 5000;
+
+function save(){
+  $.ajax({
+    type: 'POST',
+    url: '/experiment-data',
+    data: jsPsych.data.get().json(),
+    contentType: 'application/json',
+    timeout: saveTimeout,
+    success: function(){
+      console.log('success');
+      if (disconnected == false){
+        window.location.href = 'finish';
+      } else {
+        window.location.href = 'disconnect'
+      };
+      socket.emit('end of experiment', session_id)
+    },
+    error: function(){
+      $('#jspsych-content').html("Please wait a few seconds while we save your responses...")
+      if (saveAttempts < 5) {
+        saveAttempts++;
+        saveTimeout += 1000;
+        save();
+      } else {
+        window.location.href = 'data_fail';
+      }
+    }
+  })
+};
+
 //initialise experiment
 jsPsych.init({
   timeline:[
     //welcome, questions, suitableCond1, suitableCond2, suitableCond3, headphoneIntro, headphoneTest, headphoneCond,
     //everything from here requires a connection to a group
-    connect, client_join_loop, familiarisation_start, familiarisation,
+    connect, client_join_loop, warning_start, familiarisation_start, familiarisation,
     training_start, training,
     testing_start, test_join_loop, test_loop,
     //connection no longer required
     post_test_intro, post_test, ending
   ],
   preload_audio: [test_audio, audioTest, calib],
-  preload_images: [cardStim, arrowKeys],
+  preload_images: [cardStim, 'stimuli/arrowKeys.png'],
   on_finish: function(){
-    //when you put this back in remember that the mongo thing in app needs to be changed back
-    $.ajax({
-      type: 'POST',
-      url: '/experiment-data',
-      data: jsPsych.data.get().json(),
-      contentType: 'application/json',
-      timeout: 1000,
-      success: function(){
-        console.log('success');
-        if (disconnected == false){
-          window.location.href = 'finish';
-        } else {
-          window.location.href = 'disconnect'
-        };
-        socket.emit('end of experiment', session_id)
-      },
-      error: function(){
-        alert('Your data was not saved')
-        window.location.href = 'data_fail';
-      }
-    })
+    jsPsych.data.displayData();
   }
 });
 
