@@ -135,7 +135,7 @@ socket.on('want to start', function(data){
   //check if the images chosen are the same for participants
   socket.on('image choice', function(data){
     sessions[data.session_id].image_picks.push(data.image_choice);
-    if(sessions[data.session_id].image_picks.length == sessions[data.session_id].participants()){
+    if(sessions[data.session_id].image_picks.length == sessions[data.session_id].players.length){
       let valid_choice = sessions[data.session_id].image_picks.filter(x => x !== 'No choice');
       console.log(valid_choice);
       if (valid_choice.length >= 2 && valid_choice.every(x => x === valid_choice[0])) {
