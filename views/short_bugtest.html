@@ -660,7 +660,7 @@ jsPsych.init({
   preload_audio: [test_audio, audioTest, calib],
   preload_images: [cardStim, 'stimuli/arrowKeys.png'],
   on_finish: function(){
-    jsPsych.data.displayData();
+    window.location.href = 'finish'
   }
 });
 
