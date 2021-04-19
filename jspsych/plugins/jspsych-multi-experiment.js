@@ -59,13 +59,13 @@ jsPsych.plugins["multi-experiment"] = (function() {
     drawCanvas();
     function drawCanvas() {
       var html = '<script src="node_modules/jquery/dist/jquery.js"></script>'+
-       "<canvas id='canvasbg' width='"+trial.canvas_width+"'; height='"+trial.canvas_height+"'; style='border:5px solid black; position: absolute; left: 0; top: 0; z-index: 0'></canvas>";
+       "<canvas id='canvasbg' width='"+trial.canvas_width+"'; height='"+trial.canvas_height+"'; style='border:5px solid black; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 0'></canvas>";
 
       canvasfg = document.createElement('canvas');
       canvasfg.id = 'canvasfg';
       canvasfg.height = parseInt(trial.canvas_height);
       canvasfg.width = parseInt(trial.canvas_width);
-      canvasfg.style = 'border:5px solid black; position: absolute; left: 0; top: 0; z-index: 1'
+      canvasfg.style = 'border:5px solid black; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 1'
       document.body.appendChild(canvasfg);
 
 
