@@ -250,7 +250,7 @@ function end_trial(){
       };
 
       //draw the player
-      contextfg.fillStyle = 'blue';
+      contextfg.fillStyle = 'black';
       contextfg.beginPath();
       contextfg.arc(player.x, player.y, 10, 0, 2*Math.PI);
       contextfg.fill();

@@ -245,14 +245,14 @@ jsPsych.plugins["multi-experiment"] = (function() {
         //first check if we want participants to be able to see what other people are doing
         if (trial.continuous_feedback == true || ticks >= 120){
           let player = players.players[id];
-          //push the trajectories to a storage for data, make the player blue for themselves
+          //push the trajectories to a storage for data, make the player black for themselves
           if (id == trial.cookie){
             trajectory.x.push(player.x);
             trajectory.y.push(player.y);
-            var colour = 'blue';
+            var colour = 'black';
           } else {
-            //make other players red
-            var colour = 'red';
+            //make other players grey
+            var colour = 'grey';
           }
           //draw in players based on this
           contextfg.fillStyle = colour;
