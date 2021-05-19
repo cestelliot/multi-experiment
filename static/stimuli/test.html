@@ -5,19 +5,25 @@
   </head>
   <body>
     <img src='4001.jpg' id='img'></img>
+    <button id='button'>Click me</button>
     <p id='text' style = 'display:none'>Now the image is gone.</p>
   </body>
   <script>
-    document.addEventListener('DOMContentLoaded', function(){
+    const button = document.getElementById('button');
+
+
+    button.addEventListener('click', function(){
       setTimeout(function(){
         hideImage()
       }, 4000);
+    });
+
 
       function hideImage(){
         document.getElementById('img').style.display = 'none';
+        button.style.display = 'none';
         document.getElementById('text').style.display = 'block';
       }
-    })
 
   </script>
 

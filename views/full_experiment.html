@@ -30,6 +30,8 @@ var num_players = 2;
 var training_repetitions = 8;
 var num_test_trials = 6*16;
 var post_test_repetitions = 5;
+//object of values that will be filled up and used to update the jspsych progress bar
+var progress_bar = {familiarisation: 0, training: 0, test: 0, post_test: 0};
 
 //how many players can we lose before needing to call off the experiment - i think we're only using even numbers so don't need to worry too much about this
 var able_to_lose = num_players/2;
@@ -74,7 +76,15 @@ var needs_connection = false;
 //initial screen explaining experiment
 var welcome = {
   type: 'html-keyboard-response',
-  stimulus: "In this experiment you will do XYZ and first we'll check you fit the criteria",
+  stimulus: "<p>Bonjour et bienvenue.</p>" +
+  "<p>Dans cette expérience, nous allons vous apprendre à faire correspondre quatre mots, avec quatre figures géométriques.</p>"+
+  "<p>Après avoir appris les mots, vous allez jouer un jeu d'apprentissage avec des autres participants.</p>" +
+  "<p>Pour passer cette expérience, vous devez être de langue maternelle française, et ne pas avoir de trouble connu de l’audition. Vous devez également avoir une vision normale ou bien porter des verres correcteurs.</p>"+
+  "<p>Vous devez passer cette expérience à partir d’un ordinateur (et non d’une tablette ou d’un smartphone), dans une pièce calme, à l’écart de votre entourage. Il est préférable que l’ordinateur soit relié à internet par une connexion filaire plutôt qu’en wifi.</p>"+
+  "<p>Vous devez porter sur les oreilles des écouteurs reliés à la prise casque de votre ordinateur.</p>"+
+  "<p>Remplissez-vous bien ces différentes conditions ? Nous allons à présent le vérifier avec vous.</p>"+
+  "<p>ATTENTION !!! Jusqu'à la fin de l'expérience, veuillez ne pas cliquer sur le bouton « retour en arrière » de votre navigateur, ou interrompre la connexion. Si cela devait se produire, vos données seront perdues !!!!</p>"+
+  "<p>Veuillez appuyer sur la barre espace pour continuer.</p>"
   choices: [32]
 }
 
@@ -307,7 +317,7 @@ var headphoneCond = {
 //connect to group that has also passed initial screening parts of the experiment
 var connect = {
   type: 'html-keyboard-response',
-  stimulus: "We will now connect you to a group in order to continue with the experiment, please press the spacebar to be connected",
+  stimulus: "Maintenant nous vous connectons avec une groupe pour continuer, veuillez appuyer sur la bar espace.",
   choices: [32],
   on_finish: function(){
       socket.emit('new player', {cookie: cookie, num_players: num_players, num_test_trials: num_test_trials});
@@ -337,8 +347,8 @@ socket.on('disconnect before start', function(data){
 
 var client_join = {
   type: 'html-keyboard-response',
-  stimulus: function(){return '<p>Please wait while we find other players.</p>'+
-            '<p>'+num_connected+ '/'+(num_players-players_disconnected)+' connected.</p>'},
+  stimulus: function(){return '<p>Veuillez attendre pendant nous trouvons des autres participants.</p>'+
+            '<p>'+num_connected+ '/'+(num_players-players_disconnected)+' connectés.</p>'},
   response_ends_trial: false,
   trial_duration: 200
 };
@@ -384,7 +394,7 @@ var cardMap = jsPsych.randomization.shuffle([
 //just a heads up
 var warning_start = {
   type: 'html-keyboard-response',
-  stimulus: 'We have all the participants and now we will begin the experiment.',
+  stimulus: 'Nous avons tous les participants, et nous pouvons commencer.',
   response_ends_trial: false,
   trial_duration: 5000
 };
@@ -393,8 +403,12 @@ var warning_start = {
 
 var familiarisation_start = {
   type: 'html-keyboard-response',
-  stimulus: '<p>This is the familiarisation.</p>'+
-            '<p>Press space to begin.</p>',
+  stimulus: "<p>Phase de familiarisation</p>"+
+  "<p>Dans cette première phase, vous allez entendre chaque mot et vous verrez simultanément apparaître à l'écran l'image correspondant à ce mot.</p>"+
+  "<p>L'objectif de cette phase est que vous appreniez à reconnaitre l'image qui va avec chaque mot, pour cela essayez de bien écouter le mot et de l'associer à une caractéristique de l'image.</p>"+
+  "<p>Les mots et les images qui leur sont associées vous seront présentés à 5 fois.</p>"+
+  "<p>Après avoir entendu le mot, et vu l'image correspondante, vous pourrez appuyer sur la barre espace pour passer à la paire mot-image suivante.</p>"+
+  "<p>Veuillez appuyer sur la barre espace pour continuer.</p>",
   choices: [32],
   on_finish: function(data){
     data.session = session_id
@@ -405,7 +419,13 @@ var familiarisation = {timeline: [{
   type: 'audio-keyboard-response',
   choices: [32],
   stimulus: jsPsych.timelineVariable('audio'),
-  prompt: jsPsych.timelineVariable('html')
+  prompt: jsPsych.timelineVariable('html'),
+  on_start: function(){
+    jsPsych.setProgressBar(progress_bar.familiarisation/20);
+  },
+  on_finish: function(){
+    progress_bar.familiarisation++;
+  }
   }],
   timeline_variables: [cardMap[0], cardMap[0], cardMap[0], cardMap[0], cardMap[0],
                        cardMap[1], cardMap[1], cardMap[1], cardMap[1], cardMap[1],
@@ -418,9 +438,12 @@ var familiarisation = {timeline: [{
 //training trials
 var training_start = {
   type: 'html-keyboard-response',
-  stimulus: '<p>This is the training.</p>'+
-            '<p>You can move using the arrow keys <img src="stimuli/arrowKeys.png", width=100 height=50></p>' +
-            '<p>Press space to begin.</p>',
+  stimulus:  "<p>Phase d'entraînement</p>" +
+  "<p>Voyons à présent si vous avez mémorisé les associations mot-image.</p>"+
+  "<p>Nous allons vous présenter à nouveau les mots, à plusieurs reprises chacun.</p>"+
+  "<p>Après avoir entendu chaque mot, vous aurez à désigner l'image correspondant à ce mot, en bougant avec les touches fléchées <img src='stimuli/arrowKeys.png', width=100 height=50>.</p>"+
+  "<p>Vous verrez ensuite apparaître la bonne réponse."+
+  "<p>Veuillez appuyer sur la barre espace pour continuer.</p>",
   choices: [32]
 };
 
@@ -432,7 +455,11 @@ var training = {
       type: 'multi-training',
       images: function(){return cardStim},
       stimulus: jsPsych.timelineVariable('audio'),
+      on_start: function(){
+        jsPsych.setProgressBar(progress_bar.training/(training_repetitions*4));
+      },
       on_finish: function(data){
+        progress_bar.training++;
         chosen = data.image_choice;
         data.correct = jsPsych.timelineVariable('img', true);
         cardStim = jsPsych.randomization.shuffle(cardStim);
@@ -443,11 +470,11 @@ var training = {
     stimulus: function(){
       var stim;
       if (chosen!='No choice'){
-        stim = '<p>You chose:<img src='+chosen+'></p>'
+        stim = '<p>Vous avez choisi:<img src='+chosen+'></p>'
       } else {
-        stim = 'You did not choose an image.'
+        stim = "Vous n'avez pas choisi."
       }
-      stim = stim+'<p>The correct image was:<img src='+jsPsych.timelineVariable('img', true)+'></p>'
+      stim = stim+'<p>La réponse correcte est:<img src='+jsPsych.timelineVariable('img', true)+'></p>'
       return stim
     },
     trial_duration: 3000,
@@ -464,7 +491,10 @@ repetitions: training_repetitions
 //might add in a small independent testing phase first but not sure
 var testing_start = {
   type: 'html-keyboard-response',
-  stimulus: 'Now we will do the coordinated testing. Press space to wait for your group.',
+  stimulus:  "<p>Phase test</p>"+
+  "<p>Vous allez maintenant entendre de nouveaux mots et vous devez désigner l'image qui représente le mot le plus proche.</p>" +
+  "<p>Vous verrez des autres participants qui va entendre le même mot et va choisir en même temps que vous.</p>" +
+  "<p>Veuillez appuyer sur la barre espace pour continuer.</p>",
   choices: [32],
   on_finish: function(){
     socket.emit('want to start', session_id)
@@ -486,8 +516,8 @@ socket.on('begin test', function(data){
 });
 var test_join = {
   type: 'html-keyboard-response',
-  stimulus: function(){return '<p>Please wait for the other people in your group to catch up.</p>'+
-            '<p>'+num_ready+ '/'+(num_players-players_disconnected)+' connected.</p>'},
+  stimulus: function(){return '<p>Veuillez attendre pour les autres.</p>'+
+            '<p>'+num_ready+ '/'+(num_players-players_disconnected)+' connectés.</p>'},
   response_ends_trial: false,
   trial_duration: 200
 };
@@ -514,15 +544,19 @@ var testing = {
   stimulus: function(){return trial_audio},
   cookie: function(){return cookie},
   session_id: function(){return session_id},
-  continuous_feedback: false,
+  continuous_feedback: true,
   num_players: num_players,
+  on_start: function(){
+    jsPsych.setProgressBar(progress_bar.test/num_test_trials)
+  },
   on_finish: function(){
-    trials_done++
+    progress_bar.test++;
+    trials_done++;
   }
 },
 {
   type: 'html-keyboard-response',
-  stimulus: 'Please wait',
+  stimulus: 'Veuillez attendre',
   response_ends_trial: false,
   trial_duration: 2000
 }]
@@ -532,7 +566,7 @@ var testing = {
 //after every 16 trials display information about how much participants have agreed
 var display_score = {
   type: 'html-keyboard-response',
-  stimulus: function(){return 'You agreed with your group on '+num_agreed+'/16 trials.'},
+  stimulus: function(){return 'Vous avez été en accord pour '+num_agreed+'/16 trials.'},
   response_ends_trial: false,
   trial_duration: 4000,
   on_finish: function(){
@@ -572,16 +606,24 @@ socket.on('end test', function(){
 //post test to see if this has had a lasting effect
 var post_test_intro = {
   type: 'html-keyboard-response',
-  stimulus: "<p>Now we're going to do the same thing again but it's just you alone again.</p>" +
-            "<p>Please press space to begin.</p>",
+  stimulus:  "<p>Phase post-test</p>"+
+  "<p>Vous allez entendre encore des mots et choisir comme auparavant, mais sans voir des autres participants.</p>" +
+            "<p>Veuillez appuyer sur la bar espace pour continuer.</p>",
   choices: [32]
 };
+
 
 var post_test = {
   timeline: [{
   type: 'multi-training',
   images: function (){return jsPsych.randomization.shuffle(cardStim)},
-  stimulus: jsPsych.timelineVariable('stimulus')
+  stimulus: jsPsych.timelineVariable('stimulus'),
+  on_start: function(){
+    jsPsych.setProgressBar(progress_bar.post_test/(post_test_repetitions*4))
+  },
+  on_finish: function(){
+    progress_bar.post_test++;
+  }
   },
   {
     type: 'html-keyboard-response',
@@ -602,7 +644,8 @@ var post_test = {
 
 var ending = {
   type: 'html-keyboard-response',
-  stimulus: "Please press space to send your data.",
+  stimulus: "<p>Veuillez appuyer sur la barre espace afin que vos résultats nous soient transférés. Lors que ce transfert sera terminé, un message vous en préviendra.</p>"+
+  "<p>MERCI DE NE PAS FERMER CETTE FENÊTRE AVANT DE VOIR CE MESSAGE APPARAÎTRE, faute de quoi vos données seront perdues et nous ne pourrons valider votre participation.</p>",
   chocies: [32]
 }
 
@@ -640,7 +683,7 @@ function save(){
       socket.emit('end of experiment', session_id)
     },
     error: function(){
-      $('#jspsych-content').html("Please wait a few seconds while we save your responses...")
+      $('#jspsych-content').html("Veuillez attendre quelques secondes...")
       if (saveAttempts < 5) {
         saveAttempts++;
         saveTimeout += 1000;
@@ -665,6 +708,8 @@ jsPsych.init({
   ],
   preload_audio: [test_audio, audioTest, calib],
   preload_images: [cardStim, 'stimuli/arrowKeys.png'],
+  show_progress_bar: true,
+  auto_update_progress_bar: false,
   on_finish: function(){
     save();
   }
