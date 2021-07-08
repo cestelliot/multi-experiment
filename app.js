@@ -57,7 +57,7 @@ app.get('/', function(request, response){
 
 //for testing the training
 app.get('/test', function(request, response){
-  response.render('short_bugtest.html');
+  response.render('test.html');
 });
 
 //data treatment and sending
