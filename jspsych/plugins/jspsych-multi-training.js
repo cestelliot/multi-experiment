@@ -5,6 +5,7 @@
 jsPsych.plugins["multi-training"] = (function() {
 
   var plugin = {};
+  jsPsych.pluginAPI.registerPreload('multi-training', 'stimulus', 'audio');
 
   plugin.info = {
     name: "multi-training",
@@ -97,21 +98,36 @@ jsPsych.plugins["multi-training"] = (function() {
 
     //play audio
     var context = jsPsych.pluginAPI.audioContext();
-    var start_time = performance.now();
-      if(context !== null){
-        var source = context.createBufferSource();
-        source.buffer = jsPsych.pluginAPI.getAudioBuffer(trial.stimulus);
-        source.connect(context.destination);
-      } else {
-        var audio = jsPsych.pluginAPI.getAudioBuffer(trial.stimulus);
-        audio.currentTime = 0;
+    var audio;
+    var startTime;
+
+    jsPsych.pluginAPI.getAudioBuffer(trial.stimulus)
+      .then(function (buffer) {
+        if (context !== null) {
+          audio = context.createBufferSource();
+          audio.buffer = buffer;
+          audio.connect(context.destination);
+        } else {
+          audio = buffer;
+          audio.currentTime = 0;
+        }
+      })
+      .catch(function (err) {
+        console.error(`Failed to load audio file "${trial.stimulus}". Try checking the file path. We recommend using the preload plugin to load audio files.`)
+        console.error(err)
+      });
+
+      function setupTrial() {
+        // start audio
+        if (context !== null) {
+          context.resume();
+          startTime = context.currentTime;
+          audio.start(startTime);
+        } else {
+          audio.play();
+        }
       };
-      if(context !== null){
-        startTime = context.currentTime;
-        source.start(startTime);
-      } else {
-        audio.play();
-      };
+
 
 
 

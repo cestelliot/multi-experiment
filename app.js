@@ -1,11 +1,13 @@
+//mostly following tuuleh's guide
 
-//modules
+
+//load in modules that are required for running the app
 var express = require('express');
 var ejs = require('ejs');
 var body_parser = require('body-parser');
 var mongoose = require('mongoose');
 
-//start the app
+//start the app - choose a port to connect to
 var app = express();
 const PORT = process.env.PORT || 5000;
 var server = app.listen(PORT, function(){
@@ -40,7 +42,7 @@ app.set('views', __dirname + '/views');
 app.engine('html', ejs.renderFile);
 app.set('view engine', 'html');
 
-//size limits
+//size limits - these need to be pretty large for our experiment to be on the safe side
 app.use(body_parser.json({ limit: '50mb' }))
 app.use(body_parser.urlencoded({
   limit: '50mb',
@@ -58,7 +60,7 @@ app.get('/test', function(request, response){
   response.render('short_bugtest.html');
 });
 
-//data treatment
+//data treatment and sending
 app.post('/experiment-data', function(request, response) {
     Entry.create({
       'data': request.body
@@ -66,7 +68,7 @@ app.post('/experiment-data', function(request, response) {
     response.end();
 });
 
-//show a finish page for a completion and an interrupt due to disconnection
+//show a finish page for a completion, an interrupt due to disconnection, and a failure to send data
 app.get('/disconnect', function(request, response){
   response.render('disconnect.html');
 });

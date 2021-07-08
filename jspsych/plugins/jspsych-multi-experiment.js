@@ -5,7 +5,8 @@
 jsPsych.plugins["multi-experiment"] = (function() {
 
   var plugin = {};
-  var socket = io();
+  jsPsych.pluginAPI.registerPreload('multi-experiment', 'stimulus', 'audio');
+
 
   plugin.info = {
     name: "multi-experiment",
@@ -38,6 +39,10 @@ jsPsych.plugins["multi-experiment"] = (function() {
         type: jsPsych.plugins.parameterType.BOOL,
         default: true
       },
+      socket: {
+        type: jsPsych.plugins.parameterType.String,
+        default: undefined
+      },
       num_players : {
         type: jsPsych.plugins.parameterType.INT,
         default: 2
@@ -45,7 +50,11 @@ jsPsych.plugins["multi-experiment"] = (function() {
     }
   }
 
+
+
   plugin.trial = function(display_element, trial) {
+
+    var socket = trial.socket;
 
     //set up canvas and place the images
     socket.session_id = trial.session_id;
@@ -92,41 +101,55 @@ jsPsych.plugins["multi-experiment"] = (function() {
         image4.src = trial.images[3];
         image1.onload = function(){
           contextbg.drawImage(image1, 0, 0);
-          imgs[1] = {width: this.width, height:this.height};
+          imgs[0] = {width: this.width, height:this.height};
         };
         image2.onload = function(){
           contextbg.drawImage(image2, (parseInt(trial.canvas_width)-this.width), 0);
-          imgs[2] = {width: this.width, height:this.height};
+          imgs[1] = {width: this.width, height:this.height};
         };
         image3.onload = function(){
           contextbg.drawImage(image3, 0, (parseInt(trial.canvas_height)-this.height));
-          imgs[3] = {width: this.width, height:this.height};
+          imgs[2] = {width: this.width, height:this.height};
         };
         image4.onload = function(){
           contextbg.drawImage(image4, (parseInt(trial.canvas_width)-this.width), parseInt(trial.canvas_height)-this.height);
-          imgs[4] = {width: this.width, height:this.height};
+          imgs[3] = {width: this.width, height:this.height};
         };
     };
 
 
     //play audio
     var context = jsPsych.pluginAPI.audioContext();
-    var start_time = performance.now();
-      if(context !== null){
-        var source = context.createBufferSource();
-        source.buffer = jsPsych.pluginAPI.getAudioBuffer(trial.stimulus);
-        source.connect(context.destination);
-      } else {
-        var audio = jsPsych.pluginAPI.getAudioBuffer(trial.stimulus);
-        audio.currentTime = 0;
-      };
-      if(context !== null){
-        startTime = context.currentTime;
-        source.start(startTime);
-      } else {
-        audio.play();
-      };
+    var audio;
+    var startTime;
 
+    jsPsych.pluginAPI.getAudioBuffer(trial.stimulus)
+      .then(function (buffer) {
+        if (context !== null) {
+          audio = context.createBufferSource();
+          audio.buffer = buffer;
+          audio.connect(context.destination);
+        } else {
+          audio = buffer;
+          audio.currentTime = 0;
+        }
+        setupTrial();
+      })
+      .catch(function (err) {
+        console.error(`Failed to load audio file "${trial.stimulus}". Try checking the file path. We recommend using the preload plugin to load audio files.`)
+        console.error(err)
+      });
+
+      function setupTrial() {
+        // start audio
+        if (context !== null) {
+          context.resume();
+          startTime = context.currentTime;
+          audio.start(startTime);
+        } else {
+          audio.play();
+        }
+      };
 
 
 
@@ -195,13 +218,13 @@ jsPsych.plugins["multi-experiment"] = (function() {
       for (var id in players){
         if (id == trial.cookie){
           var player = players[id];
-          if (player.x <= imgs[1].width && player.y <= imgs[1].height){
+          if (player.x <= imgs[0].width && player.y <= imgs[0].height){
             var image_choice = trial.images[0]
-          } else if (parseInt(trial.canvas_width) - imgs[2].width <= player.x && player.y <= imgs[2].height){
+          } else if (parseInt(trial.canvas_width) - imgs[1].width <= player.x && player.y <= imgs[1].height){
             var image_choice = trial.images[1]
-          } else if (player.x <= imgs[3].width && parseInt(trial.canvas_height)-imgs[3].height <= player.y ){
+          } else if (player.x <= imgs[2].width && parseInt(trial.canvas_height)-imgs[2].height <= player.y ){
             var image_choice = trial.images[2]
-          } else if (parseInt(trial.canvas_width) - imgs[4].width <= player.x && parseInt(trial.canvas_height)-imgs[4].height <= player.y){
+          } else if (parseInt(trial.canvas_width) - imgs[3].width <= player.x && parseInt(trial.canvas_height)-imgs[3].height <= player.y){
             var image_choice = trial.images[3]
           } else {
             var image_choice = 'No choice'

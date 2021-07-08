@@ -38,9 +38,7 @@ var shuffle = function (array) {
 //stuff that needs to be added in
 //sessions is the object containing all the session information - when participants get put in a group a session is created and then put here to be indexed
 var sessions = {};
-
 //stimuli that are used - on the server side this is basically just text that can be sent to the client to tell it what to look up locally
-//this could very easily just be sent by the client at the start of the connection
 var test_audio = ["stimuli/1.wav", "stimuli/2.wav", "stimuli/3.wav", "stimuli/4.wav",
                 "stimuli/5.wav", "stimuli/6.wav", "stimuli/7.wav", "stimuli/8.wav",
                 "stimuli/9.wav", "stimuli/10.wav", "stimuli/11.wav", "stimuli/12.wav",
@@ -65,7 +63,8 @@ io.on('connection', function(socket){
 //before this point a connection is not needed as it's just checking eligibility for the experiment
 //after this point a continuous connection isn't necessarily needed, but we need to know what the mappings between stimuli are so they can be kept consistent
   socket.on('new player', function(data){
-    //the client generates a random id and sends it to the server, you could just use the socket.id for this, but i think it makes sense to generate your own 
+    //the client generates a random id and sends it to the server, this id has to be used because the client will generate a few different socketIDs as they move through the experiment
+    //having a code generated at the start gets around that, because then we can just index the participant based on this being sent with every package
     socket.cookie = data.cookie;
     var total_players = data.num_players;
     //generate the session
@@ -82,11 +81,14 @@ io.on('connection', function(socket){
   });
 
 
-//called when each round of the trial loads
-//the socket.join bit was part of a solution to an issue that i fixed more elegantly, but i've left it in for now
-//otherwise this loads the socket in and sets timers
+//called when each round of the trial loads - this joins the plugin sockets to the server as well
+//this is a minor issue that needed solving - I found something that works but am certain there'll be a better way
+//basically as trials get loaded by jsPsych they generate new sockets, so 2 trials that both need a socket connection to the server will generate new socketIDs from the same client
+//this means the server thinks there's 2 connections rather than 1, and it can cause problems where info that needs to be sent to client socket 1 gets sent to 2 and does nothing
+//all this does is put all client sockets in the session, information is then sent to everyone, which guarantees that no matter what the client will get the info it needs
+//inelegant, but effective for what it needs to do
   socket.on('loaded', function(data){
-      //socket.join(data.session_id);
+      socket.join(data.session_id);
       sessions[data.session_id].loaded(data);
       });
 
@@ -144,11 +146,11 @@ socket.on('want to start', function(data){
 
 
   //check if the images chosen are the same for participants
-  //if all participants who chose something chose the same, ping the client that there's been agreement so it can tell participants
   socket.on('image choice', function(data){
     sessions[data.session_id].image_picks.push(data.image_choice);
     if(sessions[data.session_id].image_picks.length ==  (sessions[data.session_id].total_participants-sessions[data.session_id].players_disconnected)){
       let valid_choice = sessions[data.session_id].image_picks.filter(x => x !== 'No choice');
+      console.log(valid_choice);
       if (valid_choice.length >= 2 && valid_choice.every(x => x === valid_choice[0])) {
         io.to(data.session_id).emit('agreement')
       }
@@ -268,6 +270,15 @@ function create_session(experiment_id, total_participants){
   };
 
 
+//return the client ids
+  session.get_ids = function(){
+    var player_ids = [];
+    for (player in session.players){
+      player_ids.push(session.players[player].socketID)
+    }
+    return player_ids
+  }
+
 
   // called if someone leaves
   session.leave = function(cookie) {
@@ -315,7 +326,7 @@ session.end_trial = function(session){
       session.test_audio = shuffle(session.test_audio);
     };
     io.to(session.id).emit('audio', session.test_audio[session.trial_num%16]);
-
+    console.log(session.trial_num);
 
     //check that players definitely moved - implement something where if they havent done it for a while they are disconnected
     for (id in session.players){
@@ -332,6 +343,8 @@ session.end_trial = function(session){
 
     //tell the participants that the trial has ended and send data to be recorded clientside
      io.to(session.id).emit('end_trial', session.players);
+
+     console.log('end trial');
    };
 
 
@@ -357,6 +370,7 @@ session.loaded = function(data){
 //set the timer at the start of the trial
    session.set_timer = function(){
      this.trial_limit = setTimeout(this.end_trial, 8e3, this);
+     console.log('timer set');
    };
 
 
@@ -387,6 +401,5 @@ session.set_players = function(){
 
 
 function destroy_session(id) {
-  console.log(id + ' deleted')
   delete sessions[id];
 }

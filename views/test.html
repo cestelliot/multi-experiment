@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Multiplayer Experiment</title>
+    <script src='jspsych/jspsych.js'></script>
+    <script src="socket.io/socket.io.js"></script>
+    <script src="jspsych/plugins/jspsych-html-keyboard-response.js"></script>
+    <script src="jspsych/plugins/jspsych-external-html.js"></script>
+    <script src="jspsych/plugins/jspsych-multi-experiment.js"></script>
+    <script src="node_modules/jquery/dist/jquery.js"></script>
+    <script src="jspsych/plugins/jspsych-survey-html-form.js"></script>
+    <script src="jspsych/plugins/jspsych-audio-button-response.js"></script>
+    <script src="jspsych/plugins/jspsych-audio-keyboard-response.js"></script>
+    <script src="jspsych/plugins/jspsych-image-button-response.js"></script>
+    <script src="jspsych/plugins/jspsych-html-button-response.js"></script>
+    <script src="jspsych/plugins/jspsych-multi-training.js"></script>
+    <script src="jspsych/plugins/jspsych-preload.js"></script>
+
+    <link href="jspsych/css/jspsych.css" rel="stylesheet" type="text/css"></link>
+
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+  </head>
+  <body> </body>
+
+<script>
+
+  var timeline = [];
+  var test_audio = ["stimuli/1.wav", "stimuli/2.wav", "stimuli/3.wav", "stimuli/4.wav",
+                  "stimuli/5.wav", "stimuli/6.wav", "stimuli/7.wav", "stimuli/8.wav",
+                  "stimuli/9.wav", "stimuli/10.wav", "stimuli/11.wav", "stimuli/12.wav",
+                  "stimuli/13.wav", "stimuli/14.wav", "stimuli/15.wav", "stimuli/16.wav"];
+  var trial_audio;
+  var cardStim = ["stimuli/1001.jpg", "stimuli/2001.jpg", "stimuli/3001.jpg", "stimuli/4001.jpg"]
+  var audioTest = ['stimuli/antiphase_HC_IOS.wav', 'stimuli/antiphase_HC_ISO.wav', 'stimuli/antiphase_HC_OIS.wav',
+                    'stimuli/antiphase_HC_OSI.wav', 'stimuli/antiphase_HC_SIO.wav', 'stimuli/antiphase_HC_SOI.wav'];
+
+
+
+  var preload = {
+    type: 'preload',
+    audio: [test_audio, audioTest],
+    images: [cardStim, 'stimuli/arrowKeys.png'],
+    on_success: function(){
+    console.log('preload')
+    }
+  };
+
+  var fluff = {
+    type: 'html-keyboard-response',
+    stimulus: 'hello',
+    choices: [" "]
+  }
+
+  var test = {
+    type: 'audio-keyboard-response',
+    stimulus: test_audio[0]
+  }
+
+  jsPsych.init({
+    timeline: [preload, fluff, test]
+  })
+</script>
+</html>
