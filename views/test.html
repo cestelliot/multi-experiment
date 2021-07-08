@@ -25,40 +25,703 @@
 
 <script>
 
-  var timeline = [];
-  var test_audio = ["stimuli/1.wav", "stimuli/2.wav", "stimuli/3.wav", "stimuli/4.wav",
-                  "stimuli/5.wav", "stimuli/6.wav", "stimuli/7.wav", "stimuli/8.wav",
-                  "stimuli/9.wav", "stimuli/10.wav", "stimuli/11.wav", "stimuli/12.wav",
-                  "stimuli/13.wav", "stimuli/14.wav", "stimuli/15.wav", "stimuli/16.wav"];
-  var trial_audio;
-  var cardStim = ["stimuli/1001.jpg", "stimuli/2001.jpg", "stimuli/3001.jpg", "stimuli/4001.jpg"]
-  var audioTest = ['stimuli/antiphase_HC_IOS.wav', 'stimuli/antiphase_HC_ISO.wav', 'stimuli/antiphase_HC_OIS.wav',
-                    'stimuli/antiphase_HC_OSI.wav', 'stimuli/antiphase_HC_SIO.wav', 'stimuli/antiphase_HC_SOI.wav'];
+//setting up variables that will be used throughout the experiment
+var num_players = 4;
+var training_repetitions = 8;
+var num_test_trials = 1*16;
+var post_test_repetitions = 5;
+//object of values that will be filled up and used to update the jspsych progress bar
+var progress_bar = {familiarisation: 0, training: 0, test: 0, post_test: 0};
+
+//how many players can we lose before needing to call off the experiment - i think we're only using even numbers so don't need to worry too much about this
+var able_to_lose = num_players/2;
+
+//stimuli and stuff needed for connection and running of experiment
+var socket = io();
+var timeline = [];
+var test_audio = ["stimuli/1.wav", "stimuli/2.wav", "stimuli/3.wav", "stimuli/4.wav",
+                "stimuli/5.wav", "stimuli/6.wav", "stimuli/7.wav", "stimuli/8.wav",
+                "stimuli/9.wav", "stimuli/10.wav", "stimuli/11.wav", "stimuli/12.wav",
+                "stimuli/13.wav", "stimuli/14.wav", "stimuli/15.wav", "stimuli/16.wav"];
+var trial_audio;
+var cardStim = ["stimuli/1001.jpg", "stimuli/2001.jpg", "stimuli/3001.jpg", "stimuli/4001.jpg"]
+var audioTest = ['stimuli/antiphase_HC_IOS.wav', 'stimuli/antiphase_HC_ISO.wav', 'stimuli/antiphase_HC_OIS.wav',
+                  'stimuli/antiphase_HC_OSI.wav', 'stimuli/antiphase_HC_SIO.wav', 'stimuli/antiphase_HC_SOI.wav'];
+
+var audioTestCorrect = [{audio: audioTest[0], correct: 2}, {audio: audioTest[1], correct: 1}, {audio: audioTest[2], correct: 2},
+                        {audio: audioTest[3], correct: 1}, {audio: audioTest[4], correct: 0}, {audio: audioTest[5], correct: 0}]
+
+var calib = 'stimuli/noise_calib_stim.wav'
+
+var timeline = [];
+
+//create a unique user id to navigate around small disconnects + html changes
+var makeCode = function(len){
+    var text = "";
+    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYabcdefghijklmnopqrstuvwxy0123456789";
+    for( var i=0; i < len; i++ ){
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+    }
+    return text;
+};
+var cookie = makeCode(10);
 
 
 
-  var preload = {
-    type: 'preload',
-    audio: [test_audio, audioTest],
-    images: [cardStim, 'stimuli/arrowKeys.png'],
-    on_success: function(){
-    console.log('preload')
+//flag which is set to true when disconnects will actually cause problems in the continuation of the experiment,
+//so we know whether to immediately end the experiment or keep going
+var needs_connection = false;
+
+
+//preloading audio and video
+var preload = {
+  type: 'preload',
+  audio: [test_audio, audioTest, calib],
+  images: [cardStim, 'stimuli/arrowKeys.png']
+};
+
+//initial screen explaining experiment
+var welcome = {
+  type: 'html-keyboard-response',
+  stimulus: "<p>Bonjour et bienvenue.</p>" +
+  "<p>Dans cette expérience, nous allons vous apprendre à faire correspondre quatre mots, avec quatre figures géométriques.</p>"+
+  "<p>Après avoir appris les mots, vous allez jouer un jeu d'apprentissage avec des autres participants.</p>" +
+  "<p>Pour passer cette expérience, vous devez être de langue maternelle française, et ne pas avoir de trouble connu de l’audition. Vous devez également avoir une vision normale ou bien porter des verres correcteurs.</p>"+
+  "<p>Vous devez passer cette expérience à partir d’un ordinateur (et non d’une tablette ou d’un smartphone), dans une pièce calme, à l’écart de votre entourage. Il est préférable que l’ordinateur soit relié à internet par une connexion filaire plutôt qu’en wifi.</p>"+
+  "<p>Vous devez porter sur les oreilles des écouteurs reliés à la prise casque de votre ordinateur.</p>"+
+  "<p>Remplissez-vous bien ces différentes conditions ? Nous allons à présent le vérifier avec vous.</p>"+
+  "<p>ATTENTION !!! Jusqu'à la fin de l'expérience, veuillez ne pas cliquer sur le bouton « retour en arrière » de votre navigateur, ou interrompre la connexion. Si cela devait se produire, vos données seront perdues !!!!</p>"+
+  "<p>Veuillez appuyer sur la barre espace pour continuer.</p>",
+  choices: [" "]
+}
+
+
+
+//survey
+var badhearing = false
+var noglasses = false
+var badvision = false
+var noheadphones = false
+
+  var questions = {
+    type: 'survey-html-form',
+    html: "<p><b>Age:</b> <input name='age' type='text'/></p>" +
+          "<p></p>" +
+
+          "<b>Sexe:</b> <input name='sex' type='radio' id='H' value='H'>" +
+          "<label for='H'>Homme</label>" +
+          "<input name='sex' type='radio' id='F' value='F'>" +
+          "<label for='F'>Femme</label>" +
+          "<input name='sex' type='radio' id='N' value='N'>" +
+          "<label for='N'>Neutre</label>" +
+          "<p></p>"+
+
+          "<p><b>Numero du departement de naissance:</b> <input name='pob' type='text'/></p>" +
+          "<p></p>" +
+
+          "<p><b>Langue maternelle:</b> <input name='language' type='text'/></p>" +
+          "<p></p>" +
+
+          "<b>Connexion internet:</b> <input name='connection' type='radio' id='wire' value='wire'>" +
+          "<label for='wire'> Filaire </label>" +
+          "<input name='connection' type='radio' id='wifi' value='wifi'>" +
+          "<label for='wifi'>Wifi</label>" +
+          "<p></p>"+
+
+          "<p><b>Navigateur (exemple : Firefox, Chrome, Internet Explorer...) :</b> <input name='browser' type='text'/></p>" +
+          "<p></p>" +
+
+          "<b>Cette expérience doit être passée dans une pièce calme et à l'écart de votre entourage. Cela est-il votre cas ? </b> <input name='quietplace' type='radio' id='quiet' value='quiet'>" +
+          "<label for='quiet'>Oui          </label>" +
+          "<input name='quietplace' type='radio' id='notquiet' value='notquiet'>" +
+          "<label for='vbad'>Non</label>"+
+          "<p></p>" +
+
+          "<b>Votre audition est-elle:</b> <input name='hearing' type='radio' id='hfine' value='fine'>" +
+          "<label for='hfine'>Normale          </label>" +
+          "<input name='hearing' type='radio' id='hbad' value='bad'>" +
+          "<label for='hbad'>Inférieure à la normale</label>" +
+          "<p></p>" +
+
+          "<b>Votre vision non-corrigée est-elle:</b> <input name='vision' type='radio' id='vfine' value='fine'>" +
+          "<label for='vfine'>Normale          </label>" +
+          "<input name='vision' type='radio' id='vbad' value='bad'>" +
+          "<label for='vbad'>Inférieure à la normale</label>"+
+          "<p></p>"+
+
+          "<b>Si votre vision non-corrigée est inférieure à la normale, portez-vous vos lunettes ou lentilles correctrices ? </b> <input name='glasses' type='radio' id='hasglasses' value='hasglasses'>" +
+          "<label for='hasglasses'>Oui          </label>" +
+          "<input name='glasses' type='radio' id='noglasses' value='noglasses'>" +
+          "<label for='vbad'>Non</label>"+
+          "<p></p>"+
+
+          "<b>Pour passer cette expérience, vous devez porter des écouteurs reliés à la prise casque de votre ordinateur. Avez-vous placé ces écouteurs sur vos oreilles ?</b> <input name='headphones' type='radio' id='hpyes' value='hpyes'>" +
+          "<label for='hpyes'>Oui          </label>" +
+          "<input name='headphones' type='radio' id='hpno' value='hpno'>" +
+          "<label for='hpno'>Non</label>"+
+
+
+          "<div></div>",
+    button_label: 'Continuer',
+    on_finish: function(data){
+      if (JSON.parse(data.responses).hearing == 'bad'){
+        console.log('bad hearing')
+        badhearing = true
+      }
+      if (JSON.parse(data.responses).vision == 'bad'){
+        console.log('bad vision')
+        badvision = true
+      }
+      if (JSON.parse(data.responses).glasses == 'noglasses'){
+        console.log('no glasses')
+        noglasses = true
+      }
+      if (JSON.parse(data.responses).headphones == 'hpno'){
+        console.log('no headphones')
+        noheadphones = true
+      }
     }
   };
 
-  var fluff = {
+//dismiss people who fail certain criteria
+var noBadHearing = {
+  type: 'html-keyboard-response',
+  stimulus: "Pour passer cette expérience, il est nécessaire d’avoir une audition normale. Nous vous remercions.",
+  response_ends_trial: false
+}
+
+var noNoGlasses= {
+  type: 'html-keyboard-response',
+  stimulus: "Pour passer cette expérience, il est nécessaire d’avoir  une vision normale ou de porter des verres correcteurs . Nous vous remercions.",
+  response_ends_trial: false
+}
+
+var noNoHeadphones= {
+  type: 'html-keyboard-response',
+  stimulus: "Pour passer cette expérience, vous devez porter des écouteurs. Nous vous remercions.",
+  response_ends_trial: false
+}
+
+var suitableCond1 = {
+  timeline: [noBadHearing],
+  conditional_function: function(){
+  if (badhearing == true){
+    return true
+  } else {
+    return false
+  }
+}
+}
+
+var suitableCond2 = {
+  timeline: [noNoGlasses],
+  conditional_function: function(){
+    if (badhearing == false && badvision == true && noglasses == true){
+      return true
+    } else {
+      return false
+    }
+  }
+}
+
+var suitableCond3 = {
+  timeline: [noNoHeadphones],
+  conditional_function: function(){
+    if (badhearing == false && badvision == false && noheadphones == true){
+      return true
+    } else {
+      return false
+    }
+  }
+}
+
+
+//headphone test
+var num_correct = 0
+
+var headphoneIntro = {timeline: [
+  {type: 'html-button-response',
+  stimulus: "<p>RÉGLAGE DU VOLUME</p>" +
+
+"<p>Veuillez placer vos écouteurs sur vos oreilles.</p>"+
+
+"<p>Régler le volume de votre ordinateur à environ 25% du maximum.</p>"+
+
+"<p>Cliquer sur Play, puis augmenter graduellement le volume jusqu'à ce que le bruit de calibration soit à un niveau élevé mais confortable.</p>"+
+
+"<p>Rejouer le bruit de calibration autant de fois que vous le souhaitez.</p>"+
+
+"<audio controls> <source src='stimuli/noise_calib_stim.wav' type='audio/wav'></audio>"+
+
+"<p>Cliquer sur Continuer quand la calibration est achevée.</p>",
+choices: ['Continuer']
+},
+
+{type: 'html-button-response',
+stimulus: "<p>Vous allez entendre trois séquences de trois sons chacune.</p>"+
+
+"<p>Pour chaque séquence, dites lequel des trois sons est le plus faible – 1, 2, ou 3 ?</p>"+
+
+"<p>Attention, tendez-bien l’oreille, vous n’entendrez chaque séquence qu’une fois !</p>",
+choices: ['Continuer']
+}
+]}
+
+ var headphoneTest = {timeline: [
+
+   {
+   type: 'audio-button-response',
+   prompt: 'Quel est le son le plus faible?',
+   stimulus: jsPsych.timelineVariable('stimulus'),
+   choices: [1, 2, 3],
+   on_finish: function(data){
+     if (data.button_pressed == jsPsych.timelineVariable('correct', true)){
+       num_correct += 1
+     }
+     console.log(num_correct)
+   }},
+   {
+     type: 'html-keyboard-response',
+     stimulus: '',
+     response_ends_trial: false,
+     trial_duration: 500
+   }
+ ],
+timeline_variables: [
+  {stimulus: audioTestCorrect[0].audio, correct:audioTestCorrect[0].correct},
+  {stimulus: audioTestCorrect[1].audio, correct:audioTestCorrect[1].correct},
+  {stimulus: audioTestCorrect[2].audio, correct:audioTestCorrect[2].correct},
+  {stimulus: audioTestCorrect[3].audio, correct:audioTestCorrect[3].correct},
+  {stimulus: audioTestCorrect[4].audio, correct:audioTestCorrect[4].correct},
+  {stimulus: audioTestCorrect[5].audio, correct:audioTestCorrect[5].correct}
+],
+randomize_order: true
+};
+
+//conditional trial for those who pass the test
+
+var headphoneFail = {
+  type: 'html-button-response',
+  stimulus: 'Veuillez utiliser des écouteurs et essayer encore.',
+  choices: ['Next'],
+  on_finish: function(){
+    num_correct = 0
+  }
+}
+
+var headphoneCond = {
+  timeline: [headphoneFail, headphoneTest],
+  conditional_function: function(){
+    if (num_correct >= 5) {
+      return false
+    } else {
+      return true
+    }
+  }
+}
+
+
+//connect to group that has also passed initial screening parts of the experiment
+var connect = {
+  type: 'html-keyboard-response',
+  stimulus: "Maintenant nous vous connectons avec une groupe pour continuer, veuillez appuyer sur la bar espace.",
+  choices: [" "],
+  on_finish: function(){
+      socket.emit('new player', {cookie: cookie, num_players: num_players, num_test_trials: num_test_trials});
+    }
+}
+
+
+
+//update the number of people connected clientside
+var num_connected = 1;
+socket.on('player connect', function(data){
+  num_connected = data;
+});
+
+//when the room is full the server sends an update, the client then knows to begin, and that if too many drop out from now it'll be an issue
+var room_full = false;
+socket.on('room full', function(){
+  needs_connection = true;
+  room_full = true;
+});
+
+//this means people can drop while still loading and other people won't see any weirdness with numbers
+//all actual important stuff to do with this is handled server side
+socket.on('disconnect before start', function(data){
+  num_connected = data
+});
+
+var client_join = {
+  type: 'html-keyboard-response',
+  stimulus: function(){return '<p>Veuillez attendre pendant nous trouvons des autres participants.</p>'+
+            '<p>'+num_connected+ '/'+(num_players-players_disconnected)+' connectés.</p>'},
+  response_ends_trial: false,
+  trial_duration: 200
+};
+var client_join_loop = {
+  timeline: [client_join],
+  loop_function: function(){
+    if (room_full == false){
+      return true
+    } else {
+      return false
+    }
+  }
+};
+
+
+//tell the plugin what session we have joined
+//this is passed as part of the argument of the plugin, since the experiment and plugins end up with different socketIDs
+//with this the plugin can tell the server which session its associated client joined
+var session_id;
+socket.on('session id', function(data){
+  session_id = data;
+  console.log(session_id);
+});
+
+
+//receive the shuffled things from the Server
+socket.on('images', function(data){
+  cardStim = data;
+});
+socket.on('audio', function(data){
+  trial_audio = data;
+});
+
+
+//familiarisation trials stimuli
+var cardMap = jsPsych.randomization.shuffle([
+{audio: 'stimuli/1.wav', img: cardStim[0], html: "<img src="+cardStim[0]+">"},
+{audio: 'stimuli/4.wav', img: cardStim[1], html: "<img src="+cardStim[1]+">"},
+{audio: 'stimuli/13.wav', img: cardStim[2], html: "<img src="+cardStim[2]+">"},
+{audio: 'stimuli/16.wav', img: cardStim[3], html: "<img src="+cardStim[3]+">"}
+]);
+
+//just a heads up
+var warning_start = {
+  type: 'html-keyboard-response',
+  stimulus: 'Nous avons tous les participants, et nous pouvons commencer.',
+  response_ends_trial: false,
+  trial_duration: 5000
+};
+
+
+
+var familiarisation_start = {
+  type: 'html-keyboard-response',
+  stimulus: "<p>Phase de familiarisation</p>"+
+  "<p>Dans cette première phase, vous allez entendre chaque mot et vous verrez simultanément apparaître à l'écran l'image correspondant à ce mot.</p>"+
+  "<p>L'objectif de cette phase est que vous appreniez à reconnaitre l'image qui va avec chaque mot, pour cela essayez de bien écouter le mot et de l'associer à une caractéristique de l'image.</p>"+
+  "<p>Les mots et les images qui leur sont associées vous seront présentés à 5 fois.</p>"+
+  "<p>Après avoir entendu le mot, et vu l'image correspondante, vous pourrez appuyer sur la barre espace pour passer à la paire mot-image suivante.</p>"+
+  "<p>Veuillez appuyer sur la barre espace pour continuer.</p>",
+  choices: [" "],
+  on_finish: function(data){
+    data.session = session_id
+  }
+};
+
+var familiarisation = {timeline: [{
+  type: 'audio-keyboard-response',
+  choices: [" "],
+  stimulus: jsPsych.timelineVariable('audio'),
+  prompt: jsPsych.timelineVariable('html'),
+  on_start: function(){
+    jsPsych.setProgressBar(progress_bar.familiarisation/20);
+  },
+  on_finish: function(){
+    progress_bar.familiarisation++;
+  }
+  }],
+  timeline_variables: [cardMap[0], cardMap[0], cardMap[0], cardMap[0], cardMap[0],
+                       cardMap[1], cardMap[1], cardMap[1], cardMap[1], cardMap[1],
+                       cardMap[2], cardMap[2], cardMap[2], cardMap[2], cardMap[2],
+                       cardMap[3], cardMap[3], cardMap[3], cardMap[3], cardMap[3]]
+};
+
+
+
+//training trials
+var training_start = {
+  type: 'html-keyboard-response',
+  stimulus:  "<p>Phase d'entraînement</p>" +
+  "<p>Voyons à présent si vous avez mémorisé les associations mot-image.</p>"+
+  "<p>Nous allons vous présenter à nouveau les mots, à plusieurs reprises chacun.</p>"+
+  "<p>Après avoir entendu chaque mot, vous aurez à désigner l'image correspondant à ce mot, en bougant avec les touches fléchées <img src='stimuli/arrowKeys.png', width=100 height=50>.</p>"+
+  "<p>Vous verrez ensuite apparaître la bonne réponse."+
+  "<p>Veuillez appuyer sur la barre espace pour continuer.</p>",
+  choices: [" "]
+};
+
+
+var chosen;
+var correct;
+var training = {
+  timeline: [{
+      type: 'multi-training',
+      images: function(){return cardStim},
+      stimulus: jsPsych.timelineVariable('audio'),
+      on_start: function(){
+        jsPsych.setProgressBar(progress_bar.training/(training_repetitions*4));
+      },
+      on_finish: function(data){
+        progress_bar.training++;
+        chosen = data.image_choice;
+        data.correct = jsPsych.timelineVariable('img', true);
+        cardStim = jsPsych.randomization.shuffle(cardStim);
+      }
+   },
+   {
     type: 'html-keyboard-response',
-    stimulus: 'hello',
-    choices: [" "]
+    stimulus: function(){
+      var stim;
+      if (chosen!='No choice'){
+        stim = '<p>Vous avez choisi:<img src='+chosen+'></p>'
+      } else {
+        stim = "Vous n'avez pas choisi."
+      }
+      stim = stim+'<p>La réponse correcte est:<img src='+jsPsych.timelineVariable('img', true)+'></p>'
+      return stim
+    },
+    trial_duration: 3000,
+    response_ends_trial: false
   }
+],
+timeline_variables: cardMap,
+randomize_order: true,
+repetitions: training_repetitions
+};
 
-  var test = {
-    type: 'audio-keyboard-response',
-    stimulus: test_audio[0]
+
+//wait for partner to catch up if necessary and then begin coordination trials
+//might add in a small independent testing phase first but not sure
+var testing_start = {
+  type: 'html-keyboard-response',
+  stimulus:  "<p>Phase test</p>"+
+  "<p>Vous allez maintenant entendre de nouveaux mots et vous devez désigner l'image qui représente le mot le plus proche.</p>" +
+  "<p>Vous verrez des autres participants qui va entendre le même mot et va choisir en même temps que vous.</p>" +
+  "<p>Veuillez appuyer sur la barre espace pour continuer.</p>",
+  choices: [" "],
+  on_finish: function(){
+    socket.emit('want to start', session_id)
   }
+};
 
-  jsPsych.init({
-    timeline: [preload, fluff, test]
+
+var num_ready = 1;
+socket.on('ready for test', function(data){
+  console.log('ready for test');
+  num_ready = data;
+});
+
+var room_ready = false;
+socket.on('begin test', function(data){
+  console.log('begin test');
+  cardStim = data;
+  room_ready = true
+});
+var test_join = {
+  type: 'html-keyboard-response',
+  stimulus: function(){return '<p>Veuillez attendre pour les autres.</p>'+
+            '<p>'+num_ready+ '/'+(num_players-players_disconnected)+' connectés.</p>'},
+  response_ends_trial: false,
+  trial_duration: 200
+};
+var test_join_loop = {
+  timeline: [test_join],
+  loop_function: function(){
+    if (room_ready == false){
+      return true
+    } else {
+      return false
+    }
+  }
+};
+
+
+var trials_done = 0;
+var num_agreed = 0;
+socket.on('agreement', function(){num_agreed++});
+
+var testing = {
+  timeline:[{
+  type: 'multi-experiment',
+  images: function(){return cardStim},
+  stimulus: function(){return trial_audio},
+  cookie: function(){return cookie},
+  session_id: function(){return session_id},
+  socket: function(){return socket},
+  continuous_feedback: true,
+  num_players: num_players,
+  on_start: function(){
+    jsPsych.setProgressBar(progress_bar.test/num_test_trials)
+  },
+  on_finish: function(){
+    progress_bar.test++;
+    trials_done++;
+  }
+},
+{
+  type: 'html-keyboard-response',
+  stimulus: 'Veuillez attendre',
+  response_ends_trial: false,
+  trial_duration: 2000
+}]
+};
+
+
+//after every 16 trials display information about how much participants have agreed
+var display_score = {
+  type: 'html-keyboard-response',
+  stimulus: function(){return 'Vous avez été en accord pour '+num_agreed+'/16 trials.'},
+  response_ends_trial: false,
+  trial_duration: 4000,
+  on_finish: function(){
+    num_agreed = 0
+  }
+};
+
+var display_conditional = {
+  timeline: [display_score],
+  conditional_function: function(){
+    if (trials_done % 16 == 0){
+      return true;
+    } else {
+      return false;
+    }
+  }
+}
+
+
+//the loop that ends when the server says the prescribed number of trials hav e been completed
+var end_test = false;
+var test_loop = {
+  timeline: [testing, display_conditional],
+  loop_function: function(){
+    if (end_test == false){
+      return true
+    } else {
+      return false
+    }
+  }
+};
+socket.on('end test', function(){
+  needs_connection = false;
+  end_test = true;
+});
+
+//post test to see if this has had a lasting effect
+var post_test_intro = {
+  type: 'html-keyboard-response',
+  stimulus:  "<p>Phase post-test</p>"+
+  "<p>Vous allez entendre encore des mots et choisir comme auparavant, mais sans voir des autres participants.</p>" +
+            "<p>Veuillez appuyer sur la bar espace pour continuer.</p>",
+  choices: [" "]
+};
+
+
+var post_test = {
+  timeline: [{
+  type: 'multi-training',
+  images: function (){return jsPsych.randomization.shuffle(cardStim)},
+  stimulus: jsPsych.timelineVariable('stimulus'),
+  on_start: function(){
+    jsPsych.setProgressBar(progress_bar.post_test/(post_test_repetitions*16))
+  },
+  on_finish: function(){
+    progress_bar.post_test++;
+  }
+  },
+  {
+    type: 'html-keyboard-response',
+    stimulus: 'Please wait',
+    response_ends_trial: false,
+    trial_duration: 2000
+  }
+],
+  timeline_variables: [
+    {stimulus: test_audio[0]}, {stimulus: test_audio[1]}, {stimulus: test_audio[2]}, {stimulus: test_audio[3]},
+    {stimulus: test_audio[4]}, {stimulus: test_audio[5]}, {stimulus: test_audio[6]}, {stimulus: test_audio[7]},
+    {stimulus: test_audio[8]}, {stimulus: test_audio[9]}, {stimulus: test_audio[10]}, {stimulus: test_audio[11]},
+    {stimulus: test_audio[12]}, {stimulus: test_audio[13]}, {stimulus: test_audio[14]}, {stimulus: test_audio[15]}
+  ],
+  randomize_order: true,
+  repetitions: post_test_repetitions
+};
+
+var ending = {
+  type: 'html-keyboard-response',
+  stimulus: "<p>Veuillez appuyer sur la barre espace afin que vos résultats nous soient transférés. Lors que ce transfert sera terminé, un message vous en préviendra.</p>"+
+  "<p>MERCI DE NE PAS FERMER CETTE FENÊTRE AVANT DE VOIR CE MESSAGE APPARAÎTRE, faute de quoi vos données seront perdues et nous ne pourrons valider votre participation.</p>",
+  chocies: [" "]
+}
+
+
+var disconnected = false;
+var players_disconnected = 0;
+socket.on('disconnect', function(){
+  players_disconnected++
+  if(needs_connection == true && players_disconnected >= able_to_lose){
+    disconnected = true;
+    var time = jsPsych.totalTime();
+    jsPsych.endExperiment();
+  //  alert('Your partner disconnected!');
+  }
+})
+
+
+var saveAttempts = 0;
+var saveTimeout = 5000;
+
+function save(){
+  $.ajax({
+    type: 'POST',
+    url: '/experiment-data',
+    data: jsPsych.data.get().json(),
+    contentType: 'application/json',
+    timeout: saveTimeout,
+    success: function(){
+      console.log('success');
+      if (disconnected == false){
+        window.location.href = 'finish';
+      } else {
+        window.location.href = 'disconnect'
+      };
+      socket.emit('end of experiment', session_id)
+    },
+    error: function(){
+      $('#jspsych-content').html("Veuillez attendre quelques secondes...")
+      if (saveAttempts < 5) {
+        saveAttempts++;
+        saveTimeout += 1000;
+        save();
+      } else {
+        window.location.href = 'data_fail';
+      }
+    }
   })
+};
+
+//initialise experiment
+jsPsych.init({
+  timeline:[
+    preload,
+    //welcome, questions, suitableCond1, suitableCond2, suitableCond3, headphoneIntro, headphoneTest, headphoneCond,
+    //everything from here requires a connection to a group
+    connect, client_join_loop, warning_start, familiarisation_start, familiarisation,
+    //training_start, training,
+    testing_start, test_join_loop, test_loop,
+    //connection no longer required
+    //post_test_intro, post_test, 
+    ending
+  ],
+  show_progress_bar: true,
+  auto_update_progress_bar: false,
+  on_finish: function(){
+    save();
+  }
+});
+
 </script>
 </html>
